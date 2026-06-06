@@ -1,10 +1,42 @@
 @import "tailwindcss";
 
+/* ── Asturias 2026 Design Tokens ── */
+@theme {
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #d9e8ff;
+  --color-brand-200: #bcdbff;
+  --color-brand-300: #8ec5ff;
+  --color-brand-400: #59a4ff;
+  --color-brand-500: #3380ff;
+  --color-brand-600: #1a5cf5;
+  --color-brand-700: #1449e1;
+  --color-brand-800: #173bb6;
+  --color-brand-900: #19358f;
+  --color-brand-950: #0f1f52;
+
+  --color-surface-0: #0b0f1a;
+  --color-surface-50: #111827;
+  --color-surface-100: #1a2236;
+  --color-surface-200: #243049;
+  --color-surface-300: #334267;
+  --color-surface-400: #475a80;
+
+  --color-accent-green: #34d399;
+  --color-accent-amber: #fbbf24;
+  --color-accent-red: #f87171;
+  --color-accent-purple: #a78bfa;
+  --color-accent-pink: #f472b6;
+  --color-accent-cyan: #22d3ee;
+
+  --color-glass: rgba(255, 255, 255, 0.06);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-glass-hover: rgba(255, 255, 255, 0.1);
+}
+
 :root {
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
   font-weight: 400;
-  color-scheme: light dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -14,8 +46,28 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-surface-0);
+  color: #e2e8f0;
 }
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-surface-300); border-radius: 3px; }
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 2px;
+}
+
+/* Smooth scrolling unless reduced motion preferred */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
 }
