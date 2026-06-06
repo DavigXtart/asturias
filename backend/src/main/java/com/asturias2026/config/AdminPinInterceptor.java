@@ -15,6 +15,9 @@ public class AdminPinInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest req, HttpServletResponse res, Object handler) {
+        if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {
+            return true;
+        }
         if (config.pinMatches(req.getHeader("X-Admin-Pin"))) {
             return true;
         }
