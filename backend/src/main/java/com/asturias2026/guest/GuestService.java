@@ -1,5 +1,9 @@
 package com.asturias2026.guest;
 
+import com.asturias2026.car.CarLeg;
+import com.asturias2026.car.CarLegRepository;
+import com.asturias2026.city.City;
+import com.asturias2026.city.CityRepository;
 import com.asturias2026.common.ApiException;
 import com.asturias2026.config_.ConfigService;
 import com.asturias2026.config_.dto.ConfigResponse;
@@ -16,10 +20,15 @@ public class GuestService {
 
     private final GuestRepository repo;
     private final ConfigService config;
+    private final CarLegRepository carLegRepo;
+    private final CityRepository cityRepo;
 
-    public GuestService(GuestRepository repo, ConfigService config) {
+    public GuestService(GuestRepository repo, ConfigService config,
+                        CarLegRepository carLegRepo, CityRepository cityRepo) {
         this.repo = repo;
         this.config = config;
+        this.carLegRepo = carLegRepo;
+        this.cityRepo = cityRepo;
     }
 
     public GuestResponse createName(String name) {
@@ -46,7 +55,17 @@ public class GuestService {
         g.setDepartureDate(req.departureDate());
         g.setCanDrive(req.canDrive());
         g.setRegistered(true);
-        return map(repo.save(g));
+        repo.save(g);
+
+        if (req.canDrive()) {
+            String place = "Desconocido";
+            if (req.cityId() != null) {
+                place = cityRepo.findById(req.cityId()).map(City::getName).orElse(place);
+            }
+            carLegRepo.save(new CarLeg(g.getId(), "outbound", req.arrivalDate(), place, 4));
+        }
+
+        return map(g);
     }
 
     public void delete(UUID id) {
