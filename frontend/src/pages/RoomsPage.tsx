@@ -430,7 +430,7 @@ function RoomEditModal({ room, onClose }: { room: RoomDistribution; onClose: () 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-20 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -438,7 +438,7 @@ function RoomEditModal({ room, onClose }: { room: RoomDistribution; onClose: () 
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-surface-100 border border-glass-border rounded-2xl overflow-hidden"
+        className="w-full max-w-md max-h-[80vh] bg-surface-100 border border-glass-border rounded-2xl overflow-hidden flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-surface-300/30">
@@ -451,7 +451,7 @@ function RoomEditModal({ room, onClose }: { room: RoomDistribution; onClose: () 
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+        <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
           {isLoading ? (
             <div className="text-center text-sm text-slate-500 py-8">Cargando...</div>
           ) : (
