@@ -29,7 +29,7 @@ public class RoomController {
         return service.createRoom(req);
     }
 
-    @PutMapping("/admin/rooms/{id}")
+    @PutMapping("/rooms/{id}")
     public RoomResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateRoomRequest req) {
         return service.updateRoom(id, req);
     }

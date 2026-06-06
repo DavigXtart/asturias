@@ -15,7 +15,6 @@ import {
 } from '@dnd-kit/core';
 import { useRoomDistribution, useAssignRoom, useUnassignRoom, useRoomBeds, useUpdateRoom } from '../hooks/useRooms';
 import { useConfig } from '../hooks/useConfig';
-import { isAdmin } from '../lib/identity';
 import { getDateRange, formatDateShort, formatDayOfWeek } from '../lib/dates';
 import { PageSkeleton } from '../components/Skeleton';
 import ErrorMessage from '../components/ErrorMessage';
@@ -221,7 +220,7 @@ export default function RoomsPage() {
 
       {/* Room edit modal */}
       <AnimatePresence>
-        {editingRoom && isAdmin() && (
+        {editingRoom && (
           <RoomEditModal room={editingRoom} onClose={() => setEditingRoom(null)} />
         )}
       </AnimatePresence>
@@ -288,7 +287,6 @@ function RoomDropZone({ room, day, floorColor, onEdit }: { room: RoomDistributio
   const unassignMutation = useUnassignRoom();
   const occupancy = room.guests.length;
   const capacity = room.bedCount;
-  const admin = isAdmin();
 
   const stopDnd = (e: React.PointerEvent | React.MouseEvent) => { e.stopPropagation(); };
 
@@ -303,25 +301,23 @@ function RoomDropZone({ room, day, floorColor, onEdit }: { room: RoomDistributio
             : 'border-glass-border bg-surface-0/40'
       }`}
     >
-      {/* Room header - tappable for admin */}
+      {/* Room header - tappable to edit */}
       <div
-        className={`flex items-center justify-between mb-1.5 ${admin ? 'cursor-pointer' : ''}`}
-        onClick={admin ? (e) => { e.stopPropagation(); onEdit(); } : undefined}
-        onPointerDown={admin ? stopDnd : undefined}
-        role={admin ? 'button' : undefined}
+        className="flex items-center justify-between mb-1.5 cursor-pointer"
+        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+        onPointerDown={stopDnd}
+        role="button"
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className={`text-xs font-bold truncate ${admin ? 'text-white hover:text-brand-300 transition-colors' : 'text-white'}`}>
+          <span className="text-xs font-bold truncate text-white hover:text-brand-300 transition-colors">
             {room.name}
           </span>
-          {admin && (
-            <span className="text-slate-500 shrink-0">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </span>
-          )}
+          <span className="text-slate-500 shrink-0">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </span>
         </div>
         <span className={`text-[10px] font-semibold shrink-0 ${
           occupancy === 0 ? 'text-slate-500' :
@@ -372,16 +368,14 @@ function RoomDropZone({ room, day, floorColor, onEdit }: { room: RoomDistributio
         {room.guests.map(g => (
           <div key={g.id} className="group relative">
             <DraggableGuest guest={g} />
-            {admin && (
-              <button
-                onPointerDown={stopDnd}
-                onClick={(e) => { e.stopPropagation(); unassignMutation.mutate({ day, guestId: g.id }); }}
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-red text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                aria-label={`Quitar ${g.fullName}`}
-              >
-                x
-              </button>
-            )}
+            <button
+              onPointerDown={stopDnd}
+              onClick={(e) => { e.stopPropagation(); unassignMutation.mutate({ day, guestId: g.id }); }}
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-red text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              aria-label={`Quitar ${g.fullName}`}
+            >
+              x
+            </button>
           </div>
         ))}
       </div>

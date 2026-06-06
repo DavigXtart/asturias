@@ -53,7 +53,7 @@ export function useUpdateRoom() {
   return useMutation({
     mutationFn: async (data: { id: string; name?: string; bedCount: number; beds: { bedType: string; position: number }[] }) => {
       const { id, ...body } = data;
-      return (await api.put(`/api/admin/rooms/${id}`, body)).data;
+      return (await api.put(`/api/rooms/${id}`, body)).data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['rooms'] });
