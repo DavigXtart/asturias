@@ -151,7 +151,7 @@ export default function RoomsPage() {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Unassigned tray */}
-        <UnassignedTray guests={distribution?.unassigned ?? []} />
+        <UnassignedTray guests={distribution?.unassigned ?? []} day={activeDay} assignedGuests={distribution?.rooms.flatMap(r => r.guests) ?? []} />
 
         {/* House visualization */}
         <div className="relative">
@@ -228,8 +228,19 @@ export default function RoomsPage() {
   );
 }
 
-function UnassignedTray({ guests }: { guests: RoomDistributionGuest[] }) {
+function UnassignedTray({ guests, day, assignedGuests }: { guests: RoomDistributionGuest[]; day: string; assignedGuests: RoomDistributionGuest[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'unassigned' });
+  const unassignMutation = useUnassignRoom();
+  const [clearing, setClearing] = useState(false);
+
+  const handleClearAll = useCallback(async () => {
+    if (assignedGuests.length === 0) return;
+    setClearing(true);
+    for (const g of assignedGuests) {
+      unassignMutation.mutate({ day, guestId: g.id });
+    }
+    setClearing(false);
+  }, [assignedGuests, day, unassignMutation]);
 
   return (
     <div
@@ -238,9 +249,20 @@ function UnassignedTray({ guests }: { guests: RoomDistributionGuest[] }) {
         isOver ? 'border-brand-500 bg-brand-500/5' : 'border-glass-border'
       }`}
     >
-      <p className="text-xs text-slate-500 mb-2 font-medium">
-        Sin asignar ({guests.length})
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-slate-500 font-medium">
+          Sin asignar ({guests.length})
+        </p>
+        {assignedGuests.length > 0 && (
+          <button
+            onClick={() => void handleClearAll()}
+            disabled={clearing}
+            className="text-[10px] text-accent-red hover:text-red-300 transition-colors cursor-pointer font-medium disabled:opacity-50"
+          >
+            Limpiar todo
+          </button>
+        )}
+      </div>
       <div className="flex flex-wrap gap-1.5">
         {guests.map(g => (
           <DraggableGuest key={g.id} guest={g} />
