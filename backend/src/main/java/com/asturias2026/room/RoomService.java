@@ -51,9 +51,10 @@ public class RoomService {
     public RoomResponse updateRoom(UUID roomId, UpdateRoomRequest req) {
         Room room = roomRepo.findById(roomId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Habitacion no encontrada"));
-        if (req.name() != null) room.setName(req.name());
-        room.setBedCount(req.bedCount());
-        room = roomRepo.save(room);
+        if (req.name() != null) {
+            room.setName(req.name());
+            room = roomRepo.save(room);
+        }
 
         if (req.beds() != null && req.day() != null) {
             bedRepo.deleteByRoomIdAndDay(roomId, req.day());
