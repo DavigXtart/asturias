@@ -49,10 +49,19 @@ export default function AttendancePage() {
           <p className="text-3xl font-bold text-white mt-1">{registeredCount}<span className="text-lg text-slate-500">/{totalGuests}</span></p>
         </div>
         <div className="bg-surface-100 rounded-2xl p-4 border border-glass-border">
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">Día que más estamos</p>
-          <p className="text-3xl font-bold text-accent-green mt-1">
-            {totalByDay.length > 0 ? Math.max(...totalByDay.map(d => d.count)) : 0}
-          </p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">Máximo</p>
+          {(() => {
+            const maxCount = totalByDay.length > 0 ? Math.max(...totalByDay.map(d => d.count)) : 0;
+            const maxDays = totalByDay.filter(d => d.count === maxCount);
+            return (
+              <>
+                <p className="text-3xl font-bold text-accent-green mt-1">{maxCount}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {maxDays.map(d => formatDayOfWeek(d.date)).join(' y ')}
+                </p>
+              </>
+            );
+          })()}
         </div>
       </div>
 
