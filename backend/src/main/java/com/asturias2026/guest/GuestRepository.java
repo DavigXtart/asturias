@@ -12,6 +12,6 @@ public interface GuestRepository extends JpaRepository<Guest, UUID> {
 
     List<Guest> findByRegisteredTrue();
 
-    @Query("SELECT g FROM Guest g WHERE g.registered = true AND g.arrivalDate <= :day AND g.departureDate >= :day")
+    @Query("SELECT g FROM Guest g WHERE g.registered = true AND g.arrivalDate <= :day AND g.departureDate > :day")
     List<Guest> findPresentOn(@Param("day") LocalDate day);
 }
