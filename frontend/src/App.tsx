@@ -10,7 +10,7 @@ import NamePicker from './pages/NamePicker';
 import RegisterForm from './pages/RegisterForm';
 import AttendancePage from './pages/AttendancePage';
 import CarsPage from './pages/CarsPage';
-import CostumePage from './pages/CostumePage';
+import GroupsPage from './pages/GroupsPage';
 import RoomsPage from './pages/RoomsPage';
 import AdminPanel from './pages/AdminPanel';
 import type { Guest } from './lib/types';
@@ -52,7 +52,7 @@ function AppContent() {
             <Routes>
               <Route path="/" element={<AttendancePage />} />
               <Route path="/cars" element={<CarsPage />} />
-              <Route path="/costume" element={<CostumePage />} />
+              <Route path="/groups" element={<GroupsPage />} />
               <Route path="/rooms" element={<RoomsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

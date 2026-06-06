@@ -49,7 +49,7 @@ export default function AttendancePage() {
           <p className="text-3xl font-bold text-white mt-1">{registeredCount}<span className="text-lg text-slate-500">/{totalGuests}</span></p>
         </div>
         <div className="bg-surface-100 rounded-2xl p-4 border border-glass-border">
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">Máx. un día</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">Día que más estamos</p>
           <p className="text-3xl font-bold text-accent-green mt-1">
             {totalByDay.length > 0 ? Math.max(...totalByDay.map(d => d.count)) : 0}
           </p>
@@ -120,10 +120,7 @@ export default function AttendancePage() {
                 transition={{ delay: gi * 0.03 }}
                 className="flex border-b border-glass-border last:border-b-0 hover:bg-surface-50/30 transition-colors"
               >
-                <div className="w-32 shrink-0 px-3 py-2.5 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-400 text-[10px] font-bold flex items-center justify-center shrink-0">
-                    {guest.fullName.charAt(0)}
-                  </div>
+                <div className="w-32 shrink-0 px-3 py-2.5 flex items-center">
                   <span className="text-xs text-white truncate">{guest.fullName}</span>
                 </div>
                 <div className="flex-1 flex items-center">

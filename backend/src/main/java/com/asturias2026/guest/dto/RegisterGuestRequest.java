@@ -9,4 +9,5 @@ public record RegisterGuestRequest(
         String cityOther,
         @NotNull LocalDate arrivalDate,
         @NotNull LocalDate departureDate,
-        boolean canDrive) {}
+        boolean canDrive,
+        int passengerSeats) {}

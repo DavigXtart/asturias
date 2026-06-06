@@ -57,12 +57,14 @@ public class GuestService {
         g.setRegistered(true);
         repo.save(g);
 
-        if (req.canDrive()) {
+        if (req.canDrive() && req.passengerSeats() > 0) {
             String place = "Desconocido";
             if (req.cityId() != null) {
                 place = cityRepo.findById(req.cityId()).map(City::getName).orElse(place);
             }
-            carLegRepo.save(new CarLeg(g.getId(), "outbound", req.arrivalDate(), place, 4));
+            int seats = req.passengerSeats();
+            carLegRepo.save(new CarLeg(g.getId(), "IDA", req.arrivalDate(), place, seats));
+            carLegRepo.save(new CarLeg(g.getId(), "VUELTA", req.departureDate(), place, seats));
         }
 
         return map(g);

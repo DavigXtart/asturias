@@ -22,6 +22,7 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
   const [arrivalDate, setArrivalDate] = useState(guest.arrivalDate ?? '');
   const [departureDate, setDepartureDate] = useState(guest.departureDate ?? '');
   const [canDrive, setCanDrive] = useState(guest.canDrive);
+  const [passengerSeats, setPassengerSeats] = useState(3);
 
   const dates = config ? getDateRange(config.tripStart, config.tripEnd) : [];
 
@@ -36,10 +37,11 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
         arrivalDate,
         departureDate,
         canDrive,
+        passengerSeats: canDrive ? passengerSeats : 0,
       },
     });
     onDone();
-  }, [arrivalDate, departureDate, cityId, canDrive, guest.id, registerMutation, onDone]);
+  }, [arrivalDate, departureDate, cityId, canDrive, passengerSeats, guest.id, registerMutation, onDone]);
 
   if (loadingCities || loadingConfig) return <PageSkeleton />;
   if (!cities || !config) return <ErrorMessage message="Error cargando datos" />;
@@ -151,6 +153,35 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
               />
             </button>
           </div>
+
+          {/* Passenger seats */}
+          {canDrive && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-surface-100 rounded-xl border border-glass-border p-4 space-y-3"
+            >
+              <p className="text-sm font-medium text-white">Plazas libres (sin contarte)</p>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setPassengerSeats(Math.max(1, passengerSeats - 1))}
+                  className="w-10 h-10 rounded-lg bg-surface-200 text-white hover:bg-surface-300 transition-colors cursor-pointer flex items-center justify-center text-lg font-bold"
+                >
+                  -
+                </button>
+                <span className="text-2xl font-bold text-white w-8 text-center">{passengerSeats}</span>
+                <button
+                  type="button"
+                  onClick={() => setPassengerSeats(Math.min(8, passengerSeats + 1))}
+                  className="w-10 h-10 rounded-lg bg-surface-200 text-white hover:bg-surface-300 transition-colors cursor-pointer flex items-center justify-center text-lg font-bold"
+                >
+                  +
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Submit */}
           <motion.button

@@ -18,25 +18,40 @@ import { isAdmin } from '../lib/identity';
 import { getDateRange, formatDateShort, formatDayOfWeek } from '../lib/dates';
 import { PageSkeleton } from '../components/Skeleton';
 import ErrorMessage from '../components/ErrorMessage';
-import api from '../lib/api';
-import { queryClient } from '../lib/queryClient';
 import type { RoomDistribution, RoomDistributionGuest, FloorName } from '../lib/types';
 
-const FLOOR_LABELS: Record<FloorName, string> = {
-  PLANTA_1: 'Planta 1',
-  PLANTA_2: 'Planta 2',
-  PLANTA_3: 'Planta 3',
-  HORREO: 'Horreo',
-};
-
-const FLOOR_COLORS: Record<FloorName, string> = {
-  PLANTA_1: 'from-brand-600/30 to-brand-500/10',
-  PLANTA_2: 'from-accent-green/30 to-accent-green/5',
-  PLANTA_3: 'from-accent-purple/30 to-accent-purple/5',
-  HORREO: 'from-accent-amber/30 to-accent-amber/5',
-};
-
 const FLOOR_ORDER: FloorName[] = ['PLANTA_3', 'PLANTA_2', 'PLANTA_1', 'HORREO'];
+
+const FLOOR_META: Record<FloorName, { label: string; icon: string; color: string; borderColor: string; bgGradient: string }> = {
+  PLANTA_3: {
+    label: '2ª Planta',
+    icon: 'M3 21h18M3 7v14M21 7v14M5 7l7-4 7 4',
+    color: 'text-accent-purple',
+    borderColor: 'border-accent-purple/30',
+    bgGradient: 'from-accent-purple/10 to-transparent',
+  },
+  PLANTA_2: {
+    label: '1ª Planta',
+    icon: 'M3 21h18M3 10v11M21 10v11M5 10l7-4 7 4',
+    color: 'text-brand-400',
+    borderColor: 'border-brand-400/30',
+    bgGradient: 'from-brand-400/10 to-transparent',
+  },
+  PLANTA_1: {
+    label: 'Planta Baja',
+    icon: 'M3 21h18M3 13v8M21 13v8M5 13l7-4 7 4',
+    color: 'text-accent-green',
+    borderColor: 'border-accent-green/30',
+    bgGradient: 'from-accent-green/10 to-transparent',
+  },
+  HORREO: {
+    label: 'Hórreo',
+    icon: 'M4 21V10l8-6 8 6v11M3 21h18',
+    color: 'text-accent-amber',
+    borderColor: 'border-accent-amber/30',
+    bgGradient: 'from-accent-amber/10 to-transparent',
+  },
+};
 
 export default function RoomsPage() {
   const { data: config } = useConfig();
@@ -49,7 +64,6 @@ export default function RoomsPage() {
   const unassignMutation = useUnassignRoom();
 
   const [activeGuest, setActiveGuest] = useState<RoomDistributionGuest | null>(null);
-  const [showCreateRoom, setShowCreateRoom] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -66,6 +80,14 @@ export default function RoomsPage() {
     return grouped;
   }, [distribution]);
 
+  // Bed stats
+  const stats = useMemo(() => {
+    if (!distribution) return { total: 0, occupied: 0, free: 0 };
+    const total = distribution.rooms.reduce((s, r) => s + r.bedCount, 0);
+    const occupied = distribution.rooms.reduce((s, r) => s + r.guests.length, 0);
+    return { total, occupied, free: total - occupied };
+  }, [distribution]);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const guest = event.active.data.current as RoomDistributionGuest | undefined;
     if (guest) setActiveGuest(guest);
@@ -80,7 +102,6 @@ export default function RoomsPage() {
     const targetId = String(over.id);
 
     if (targetId === 'unassigned') {
-      // Remove from room
       unassignMutation.mutate({ day: activeDay, guestId });
     } else if (targetId.startsWith('room-')) {
       const roomId = targetId.replace('room-', '');
@@ -98,53 +119,95 @@ export default function RoomsPage() {
       animate={{ opacity: 1 }}
       className="space-y-4"
     >
-      {/* Day selector */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-        {dates.map(d => (
-          <button
-            key={d}
-            onClick={() => setSelectedDay(d)}
-            className={`shrink-0 flex flex-col items-center py-2 px-3 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
-              d === activeDay
-                ? 'bg-brand-500/20 border-brand-500 text-brand-300'
-                : 'bg-surface-100 border-glass-border text-slate-400 hover:border-surface-300'
-            }`}
-          >
-            <span className="text-[10px] uppercase">{formatDayOfWeek(d)}</span>
-            <span className="font-semibold">{formatDateShort(d)}</span>
-          </button>
-        ))}
+      {/* Header: Day selector + Stats */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none flex-1">
+          {dates.map(d => (
+            <button
+              key={d}
+              onClick={() => setSelectedDay(d)}
+              className={`shrink-0 flex flex-col items-center py-2 px-3 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+                d === activeDay
+                  ? 'bg-brand-500/20 border-brand-500 text-brand-300'
+                  : 'bg-surface-100 border-glass-border text-slate-400 hover:border-surface-300'
+              }`}
+            >
+              <span className="text-[10px] uppercase">{formatDayOfWeek(d)}</span>
+              <span className="font-semibold">{formatDateShort(d)}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Bed counter */}
+        <div className="shrink-0 bg-surface-100 border border-glass-border rounded-xl px-3 py-2 text-center min-w-[80px]">
+          <div className="flex items-center justify-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-400">
+              <path d="M2 4v16M22 4v16M2 12h20M2 8h20M6 8v4M18 8v4" />
+            </svg>
+            <span className="text-sm font-bold text-white">{stats.occupied}/{stats.total}</span>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-0.5">{stats.free} libre{stats.free !== 1 ? 's' : ''}</p>
+        </div>
       </div>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Unassigned tray */}
         <UnassignedTray guests={distribution?.unassigned ?? []} />
 
-        {/* House plan */}
-        <div className="space-y-3">
-          {FLOOR_ORDER.map(floor => {
-            const rooms = roomsByFloor[floor];
-            if (!rooms || rooms.length === 0) return null;
-            return (
-              <motion.div
-                key={floor}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-2"
-              >
-                <div className={`rounded-2xl border border-glass-border overflow-hidden bg-gradient-to-b ${FLOOR_COLORS[floor]}`}>
-                  <div className="px-4 py-2.5 border-b border-glass-border">
-                    <h3 className="text-sm font-bold text-white">{FLOOR_LABELS[floor]}</h3>
+        {/* House visualization */}
+        <div className="relative">
+          {/* House frame */}
+          <div className="border-2 border-surface-300/50 rounded-2xl overflow-hidden bg-surface-0/50">
+            {/* Roof */}
+            <div className="h-3 bg-gradient-to-r from-surface-300/30 via-surface-300/50 to-surface-300/30" />
+
+            {FLOOR_ORDER.filter(f => f !== 'HORREO').map((floor, idx) => {
+              const rooms = roomsByFloor[floor];
+              const meta = FLOOR_META[floor];
+              if (!rooms || rooms.length === 0) return null;
+              return (
+                <div key={floor} className={`${idx > 0 ? 'border-t border-surface-300/30' : ''}`}>
+                  <div className={`bg-gradient-to-r ${meta.bgGradient}`}>
+                    {/* Floor label */}
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-surface-300/20">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={meta.color}>
+                        <path d={meta.icon} />
+                      </svg>
+                      <span className={`text-xs font-bold ${meta.color}`}>{meta.label}</span>
+                    </div>
+                    {/* Rooms grid */}
+                    <div className={`grid gap-2 p-3 ${rooms.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                      {rooms.map(room => (
+                        <RoomDropZone key={room.id} room={room} day={activeDay} floorColor={meta.color} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 p-3">
-                    {rooms.map(room => (
-                      <RoomDropZone key={room.id} room={room} day={activeDay} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Hórreo - separate building */}
+          {roomsByFloor['HORREO'] && roomsByFloor['HORREO'].length > 0 && (
+            <div className="mt-4">
+              <div className={`border-2 ${FLOOR_META.HORREO.borderColor} rounded-2xl overflow-hidden bg-surface-0/50`}>
+                <div className={`bg-gradient-to-r ${FLOOR_META.HORREO.bgGradient}`}>
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-accent-amber/20">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-amber">
+                      <path d={FLOOR_META.HORREO.icon} />
+                    </svg>
+                    <span className="text-xs font-bold text-accent-amber">{FLOOR_META.HORREO.label}</span>
+                    <span className="text-[10px] text-slate-500 ml-1">(exterior)</span>
+                  </div>
+                  <div className="p-3">
+                    {roomsByFloor['HORREO']!.map(room => (
+                      <RoomDropZone key={room.id} room={room} day={activeDay} floorColor="text-accent-amber" />
                     ))}
                   </div>
                 </div>
-              </motion.div>
-            );
-          })}
+              </div>
+            </div>
+          )}
         </div>
 
         <DragOverlay>
@@ -155,22 +218,6 @@ export default function RoomsPage() {
           )}
         </DragOverlay>
       </DndContext>
-
-      {/* Admin: create room */}
-      {isAdmin() && (
-        <>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowCreateRoom(true)}
-            className="w-full py-3 rounded-xl border-2 border-dashed border-surface-300 text-sm font-medium text-slate-400 hover:border-brand-500/50 hover:text-brand-400 transition-all cursor-pointer"
-          >
-            + Añadir habitación
-          </motion.button>
-          <AnimatePresence>
-            {showCreateRoom && <CreateRoomForm onClose={() => setShowCreateRoom(false)} />}
-          </AnimatePresence>
-        </>
-      )}
     </motion.div>
   );
 }
@@ -181,7 +228,7 @@ function UnassignedTray({ guests }: { guests: RoomDistributionGuest[] }) {
   return (
     <div
       ref={setNodeRef}
-      className={`bg-surface-100 rounded-2xl p-3 border transition-colors min-h-[60px] ${
+      className={`bg-surface-100 rounded-2xl p-3 border transition-colors min-h-[56px] ${
         isOver ? 'border-brand-500 bg-brand-500/5' : 'border-glass-border'
       }`}
     >
@@ -228,40 +275,52 @@ function DraggableGuest({ guest }: { guest: RoomDistributionGuest }) {
   );
 }
 
-function RoomDropZone({ room, day }: { room: RoomDistribution; day: string }) {
+function RoomDropZone({ room, day, floorColor }: { room: RoomDistribution; day: string; floorColor: string }) {
   const { setNodeRef, isOver } = useDroppable({ id: `room-${room.id}` });
   const overCapacity = room.guests.length > room.bedCount;
   const unassignMutation = useUnassignRoom();
+  const occupancy = room.guests.length;
+  const capacity = room.bedCount;
 
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl p-2.5 border transition-all min-h-[80px] ${
+      className={`rounded-xl p-2.5 border transition-all min-h-[72px] ${
         isOver
           ? 'border-brand-500 bg-brand-500/10 scale-[1.02]'
           : overCapacity
-            ? 'border-accent-amber/50 bg-accent-amber/5'
-            : 'border-glass-border bg-surface-0/30'
+            ? 'border-accent-red/40 bg-accent-red/5'
+            : 'border-glass-border bg-surface-0/40'
       }`}
     >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs font-semibold text-white truncate">{room.name}</span>
+      {/* Room header */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold text-white truncate">{room.name}</span>
         <div className="flex items-center gap-1">
-          {Array.from({ length: room.bedCount }).map((_, i) => (
-            <div
-              key={i}
-              className={`w-2 h-2 rounded-full ${
-                i < room.guests.length ? 'bg-brand-400' : 'bg-surface-400/50'
-              }`}
-            />
-          ))}
+          <span className={`text-[10px] font-semibold ${
+            occupancy === 0 ? 'text-slate-500' :
+            occupancy <= capacity ? floorColor : 'text-accent-red'
+          }`}>
+            {occupancy}/{capacity}
+          </span>
         </div>
       </div>
-      {overCapacity && (
-        <p className="text-[10px] text-accent-amber font-medium mb-1">
-          Excede capacidad ({room.guests.length}/{room.bedCount})
-        </p>
-      )}
+
+      {/* Bed indicators */}
+      <div className="flex gap-0.5 mb-2">
+        {Array.from({ length: capacity }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-1 flex-1 rounded-full transition-colors ${
+              i < occupancy
+                ? overCapacity ? 'bg-accent-red' : 'bg-brand-400'
+                : 'bg-surface-300/50'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Guests */}
       <div className="flex flex-wrap gap-1">
         {room.guests.map(g => (
           <div key={g.id} className="group relative">
@@ -279,76 +338,5 @@ function RoomDropZone({ room, day }: { room: RoomDistribution; day: string }) {
         ))}
       </div>
     </div>
-  );
-}
-
-function CreateRoomForm({ onClose }: { onClose: () => void }) {
-  const [name, setName] = useState('');
-  const [floor, setFloor] = useState<FloorName>('PLANTA_1');
-  const [bedCount, setBedCount] = useState(2);
-  const [position, setPosition] = useState(0);
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name) return;
-    setSaving(true);
-    try {
-      await api.post('/api/admin/rooms', { name, floor, bedCount, position });
-      void queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      onClose();
-    } finally {
-      setSaving(false);
-    }
-  }, [name, floor, bedCount, position, onClose]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      className="bg-surface-100 rounded-2xl p-4 border border-glass-border overflow-hidden"
-    >
-      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
-        <input
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Nombre de la habitación"
-          className="w-full px-4 py-2.5 bg-surface-200 border border-glass-border rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          aria-label="Nombre de la habitación"
-        />
-        <div className="grid grid-cols-4 gap-1.5">
-          {FLOOR_ORDER.map(f => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setFloor(f)}
-              className={`py-2 rounded-lg text-[11px] font-medium transition-all cursor-pointer border ${
-                floor === f ? 'bg-brand-500/20 border-brand-500 text-brand-300' : 'bg-surface-200 border-glass-border text-slate-400'
-              }`}
-            >
-              {FLOOR_LABELS[f]}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <label className="text-xs text-slate-400">Camas:</label>
-          <button type="button" onClick={() => setBedCount(Math.max(1, bedCount - 1))} className="w-8 h-8 rounded-lg bg-surface-200 text-white cursor-pointer">-</button>
-          <span className="text-sm font-bold text-white">{bedCount}</span>
-          <button type="button" onClick={() => setBedCount(bedCount + 1)} className="w-8 h-8 rounded-lg bg-surface-200 text-white cursor-pointer">+</button>
-          <label className="text-xs text-slate-400 ml-4">Pos:</label>
-          <input type="number" value={position} onChange={e => setPosition(Number(e.target.value))} className="w-16 px-2 py-1 bg-surface-200 border border-glass-border rounded-lg text-white text-sm" aria-label="Posición" />
-        </div>
-        <div className="flex gap-2">
-          <button type="submit" disabled={!name || saving} className="flex-1 py-2.5 rounded-xl font-semibold text-white bg-brand-500 hover:bg-brand-400 disabled:opacity-40 cursor-pointer text-sm">
-            {saving ? 'Guardando...' : 'Crear'}
-          </button>
-          <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl text-slate-400 bg-surface-200 hover:bg-surface-300 cursor-pointer text-sm">
-            Cancelar
-          </button>
-        </div>
-      </form>
-    </motion.div>
   );
 }
