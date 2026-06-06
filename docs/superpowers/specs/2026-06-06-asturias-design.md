@@ -27,7 +27,8 @@ Tres capas separadas, desplegadas en Render + Supabase:
 
 - **Frontend:** React + Vite + Tailwind. Mobile-first. Animaciones (Framer Motion para
   el sorteo) y arrastrar-soltar móvil (dnd-kit) para habitaciones. Desplegado como
-  *Static Site* en Render.
+  *Static Site* en Render. **Todo el frontend se construye siguiendo la skill
+  `ui-ux-pro-max`** (ver sección 4.5 — Lenguaje visual).
 - **Backend:** Spring Boot (Java), API REST. Contiene toda la lógica (sorteo, validaciones,
   PIN admin). Desplegado como *Web Service* en Render.
 - **BBDD:** Supabase usado **solo como Postgres** (conexión JDBC desde Spring Boot). No se
@@ -119,6 +120,28 @@ plano para reflejar los cambios de otros.
   las camas.
 - **Polling cada 5 s** para ver cambios de otros. **Cada día guarda su propia distribución.**
 - **Cualquiera** mueve gente; **admin** configura habitaciones y ajusta camas (+/–).
+
+### 4.5 Lenguaje visual (requisito transversal)
+
+**Todo lo relacionado con el frontend se diseña e implementa siguiendo la skill
+`ui-ux-pro-max`.** Antes de construir cualquier pantalla o componente se consulta dicha
+skill para estilo, paleta, tipografía, espaciado, accesibilidad y animaciones.
+
+Estética buscada: **moderna, elegante, tipo SaaS, muy dinámica**.
+
+- **Look & feel SaaS premium:** diseño limpio y espacioso, jerarquía visual clara,
+  componentes con esquinas redondeadas, sombras suaves y profundidad sutil.
+- **Mobile-first siempre:** todo se diseña primero para móvil y escala a pantallas grandes.
+- **Microinteracciones y movimiento:** transiciones suaves, *hover/press states*, entradas
+  animadas, *skeletons* de carga. La app debe "sentirse viva" sin recargar.
+- **Tema cuidado:** paleta coherente (con modo oscuro si encaja), buen *font pairing* y
+  contraste accesible (mínimo 4.5:1).
+- **Momentos estrella:** la **vista de la casa** (distribución) y la **animación del sorteo**
+  deben ser especialmente vistosas y pulidas; son el "wow" de la app.
+- **Accesibilidad:** foco visible, *targets* táctiles cómodos, etiquetas en controles e
+  iconos, orden de tabulación coherente.
+
+Esta guía aplica a **todas** las pantallas: registro, asistencia, coches, sorteo y habitaciones.
 
 ## 5. Manejo de errores y casos límite
 
