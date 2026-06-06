@@ -9,5 +9,6 @@ public interface BedRepository extends JpaRepository<Bed, UUID> {
     List<Bed> findByRoomIdAndDayOrderByPositionAsc(UUID roomId, LocalDate day);
     List<Bed> findByDayOrderByPositionAsc(LocalDate day);
     void deleteByRoomIdAndDay(UUID roomId, LocalDate day);
+    void deleteByDay(LocalDate day);
     void deleteByRoomId(UUID roomId);
 }

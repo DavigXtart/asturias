@@ -134,11 +134,8 @@ public class RoomService {
         }
         for (LocalDate target : targetDays) {
             if (target.equals(sourceDay)) continue;
-            // Delete existing beds for this target day
-            for (Room room : roomRepo.findAllByOrderByFloorAscPositionAsc()) {
-                bedRepo.deleteByRoomIdAndDay(room.getId(), target);
-            }
-            // Copy all source beds
+            bedRepo.deleteByDay(target);
+            bedRepo.flush();
             for (Bed src : sourceBeds) {
                 bedRepo.save(new Bed(src.getRoomId(), src.getBedType(), src.getPosition(), target));
             }
