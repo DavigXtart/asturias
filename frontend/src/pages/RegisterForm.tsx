@@ -19,8 +19,6 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
   const registerMutation = useRegisterGuest();
 
   const [cityId, setCityId] = useState<string | undefined>(guest.cityId ?? undefined);
-  const [cityOther, setCityOther] = useState(guest.cityOther ?? '');
-  const [showOther, setShowOther] = useState(!!guest.cityOther);
   const [arrivalDate, setArrivalDate] = useState(guest.arrivalDate ?? '');
   const [departureDate, setDepartureDate] = useState(guest.departureDate ?? '');
   const [canDrive, setCanDrive] = useState(guest.canDrive);
@@ -33,15 +31,15 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
     await registerMutation.mutateAsync({
       id: guest.id,
       data: {
-        cityId: showOther ? undefined : cityId,
-        cityOther: showOther ? cityOther : undefined,
+        cityId,
+        cityOther: undefined,
         arrivalDate,
         departureDate,
         canDrive,
       },
     });
     onDone();
-  }, [arrivalDate, departureDate, cityId, cityOther, showOther, canDrive, guest.id, registerMutation, onDone]);
+  }, [arrivalDate, departureDate, cityId, canDrive, guest.id, registerMutation, onDone]);
 
   if (loadingCities || loadingConfig) return <PageSkeleton />;
   if (!cities || !config) return <ErrorMessage message="Error cargando datos" />;
@@ -69,47 +67,18 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
           {/* City */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">Ciudad de salida</label>
-            {!showOther ? (
-              <div className="space-y-2">
-                <select
-                  value={cityId ?? ''}
-                  onChange={e => setCityId(e.target.value || undefined)}
-                  className="w-full px-4 py-3 bg-surface-100 border border-glass-border rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none cursor-pointer"
-                  aria-label="Ciudad de salida"
-                >
-                  <option value="">Seleccionar ciudad...</option>
-                  {cities.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => { setShowOther(true); setCityId(undefined); }}
-                  className="text-xs text-brand-400 hover:text-brand-300 transition-colors cursor-pointer"
-                >
-                  Mi ciudad no aparece
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={cityOther}
-                  onChange={e => setCityOther(e.target.value)}
-                  placeholder="Escribe tu ciudad..."
-                  className="w-full px-4 py-3 bg-surface-100 border border-glass-border rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  aria-label="Otra ciudad"
-                />
-                <button
-                  type="button"
-                  onClick={() => { setShowOther(false); setCityOther(''); }}
-                  className="text-xs text-brand-400 hover:text-brand-300 transition-colors cursor-pointer"
-                >
-                  Elegir de la lista
-                </button>
-              </div>
-            )}
+            <label className="block text-sm font-medium text-slate-300">Lugar de salida</label>
+            <select
+              value={cityId ?? ''}
+              onChange={e => setCityId(e.target.value || undefined)}
+              className="w-full px-4 py-3 bg-surface-100 border border-glass-border rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none cursor-pointer"
+              aria-label="Lugar de salida"
+            >
+              <option value="">Seleccionar lugar...</option>
+              {cities.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Arrival */}
@@ -163,7 +132,6 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
           <div className="flex items-center justify-between p-4 bg-surface-100 rounded-xl border border-glass-border">
             <div className="space-y-0.5">
               <p className="text-sm font-medium text-white">¿Puedes llevar coche?</p>
-              <p className="text-xs text-slate-500">Indica si puedes conducir</p>
             </div>
             <button
               type="button"
