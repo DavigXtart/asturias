@@ -80,6 +80,11 @@ public class RoomService {
         List<Room> rooms = roomRepo.findAllByOrderByFloorAscPositionAsc();
         List<Guest> present = guestRepo.findPresentOn(day);
         List<RoomAssignment> assignments = assignmentRepo.findByDay(day);
+        List<Bed> allBeds = bedRepo.findAll();
+
+        // Build a map: roomId -> list of beds
+        Map<UUID, List<Bed>> bedsByRoom = allBeds.stream()
+                .collect(Collectors.groupingBy(Bed::getRoomId));
 
         // Build a map: roomId -> list of assigned guest IDs
         Map<UUID, List<UUID>> roomAssignments = assignments.stream()
@@ -94,15 +99,19 @@ public class RoomService {
         List<DayDistributionResponse.RoomWithGuests> roomResults = rooms.stream().map(room -> {
             List<UUID> guestIds = roomAssignments.getOrDefault(room.getId(), List.of());
             List<DayDistributionResponse.GuestInfo> guests = guestIds.stream()
-                    .filter(guestMap::containsKey)  // only show present guests
+                    .filter(guestMap::containsKey)
                     .map(gid -> {
                         assignedGuestIds.add(gid);
                         Guest g = guestMap.get(gid);
                         return new DayDistributionResponse.GuestInfo(g.getId(), g.getFullName());
                     })
                     .toList();
+            List<Bed> roomBeds = bedsByRoom.getOrDefault(room.getId(), List.of());
+            int individualBeds = (int) roomBeds.stream().filter(b -> "INDIVIDUAL".equals(b.getBedType())).count();
+            int matrimonioBeds = (int) roomBeds.stream().filter(b -> "MATRIMONIO".equals(b.getBedType())).count();
             return new DayDistributionResponse.RoomWithGuests(
-                    room.getId(), room.getName(), room.getFloor(), room.getBedCount(), guests);
+                    room.getId(), room.getName(), room.getFloor(), room.getBedCount(),
+                    individualBeds, matrimonioBeds, guests);
         }).toList();
 
         List<DayDistributionResponse.GuestInfo> unassigned = present.stream()

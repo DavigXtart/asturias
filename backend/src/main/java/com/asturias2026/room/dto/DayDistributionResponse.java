@@ -9,6 +9,8 @@ public record DayDistributionResponse(
         List<RoomWithGuests> rooms,
         List<GuestInfo> unassigned) {
 
-    public record RoomWithGuests(UUID id, String name, String floor, int bedCount, List<GuestInfo> guests) {}
+    public record RoomWithGuests(UUID id, String name, String floor, int bedCount,
+                                    int individualBeds, int matrimonioBeds,
+                                    List<GuestInfo> guests) {}
     public record GuestInfo(UUID id, String fullName) {}
 }

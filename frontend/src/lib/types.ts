@@ -69,6 +69,8 @@ export interface RoomDistribution {
   name: string;
   floor: FloorName;
   bedCount: number;
+  individualBeds: number;
+  matrimonioBeds: number;
   guests: RoomDistributionGuest[];
 }
 
