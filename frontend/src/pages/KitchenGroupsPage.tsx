@@ -18,11 +18,6 @@ interface KitchenGroupData {
   members: KitchenMember[];
 }
 
-interface DayBalance {
-  date: string;
-  groupCounts: Record<number, number>;
-}
-
 const GROUP_COLORS = [
   { bg: 'bg-red-500/15', border: 'border-red-500/30', text: 'text-red-400', badge: 'bg-red-500' },
   { bg: 'bg-blue-500/15', border: 'border-blue-500/30', text: 'text-blue-400', badge: 'bg-blue-500' },
@@ -37,16 +32,8 @@ function useKitchenGroups() {
   });
 }
 
-function useKitchenBalance() {
-  return useQuery<DayBalance[]>({
-    queryKey: ['kitchen-balance'],
-    queryFn: async () => (await api.get<DayBalance[]>('/api/kitchen/balance')).data,
-  });
-}
-
 export default function KitchenGroupsPage() {
   const { data: groups, isLoading, isError, refetch } = useKitchenGroups();
-  const { data: balance } = useKitchenBalance();
   const { data: guests } = useGuests();
   const [addingTo, setAddingTo] = useState<number | null>(null);
 
@@ -84,10 +71,25 @@ export default function KitchenGroupsPage() {
         ))}
       </div>
 
-      {/* Balance table */}
-      {balance && balance.length > 0 && (
-        <BalanceTable balance={balance} />
-      )}
+      {/* Coming soon */}
+      <div className="bg-surface-100 rounded-2xl border border-glass-border p-6 flex flex-col items-center text-center space-y-3">
+        <div className="w-14 h-14 rounded-full bg-surface-200 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+        <p className="text-sm font-bold text-white">Coming soon</p>
+        <p className="text-xs text-slate-400">El reparto de días por grupo estará disponible pronto</p>
+        <a
+          href="https://www.youtube.com/shorts/Zb5OcbQ21HA"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-accent-red to-accent-pink hover:opacity-90 transition-all cursor-pointer text-sm"
+        >
+          Púlsame
+        </a>
+      </div>
     </div>
   );
 }
@@ -204,41 +206,3 @@ function GroupCard({ group, color, isAddingTo, onToggleAdd, unassignedGuests }: 
   );
 }
 
-function BalanceTable({ balance }: { balance: DayBalance[] }) {
-  return (
-    <div className="bg-surface-100 rounded-2xl border border-glass-border overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-glass-border">
-        <h3 className="text-sm font-semibold text-white">Personas por grupo / día</h3>
-        <p className="text-[10px] text-slate-500">Comida + cena por grupo según asistencia</p>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-glass-border">
-              <th className="px-3 py-2 text-left text-slate-500 font-medium">Día</th>
-              {[1, 2, 3, 4].map(g => (
-                <th key={g} className="px-3 py-2 text-center">
-                  <div className={`w-5 h-5 mx-auto rounded-full ${GROUP_COLORS[g - 1].badge} flex items-center justify-center text-[9px] font-bold text-white`}>
-                    {g}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {balance.map(day => (
-              <tr key={day.date} className="border-b border-glass-border last:border-b-0 hover:bg-surface-50/30">
-                <td className="px-3 py-2 text-slate-400">{day.date}</td>
-                {[1, 2, 3, 4].map(g => (
-                  <td key={g} className="px-3 py-2 text-center text-slate-300 font-medium">
-                    {day.groupCounts[g] ?? 0}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
