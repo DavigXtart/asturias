@@ -382,7 +382,7 @@ export default function CostumePage() {
                 ))}
               </div>
               <p className="text-xs text-slate-500 mt-3">
-                Color del disfraz: <span className="font-semibold text-slate-300 capitalize">{costume.ballColor}</span>
+                Temática: <span className="font-semibold text-slate-300">Heroes y villanos</span>
               </p>
             </div>
 
