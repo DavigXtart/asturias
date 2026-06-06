@@ -53,7 +53,7 @@ export default function Header({ onAdminClick }: HeaderProps) {
         </button>
         {guestId && (
           <button
-            onClick={() => { clearGuestId(); clearAdminPin(); window.location.reload(); }}
+            onClick={() => { clearGuestId(); clearAdminPin(); window.location.href = '/'; }}
             className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-glass-hover transition-colors cursor-pointer"
             aria-label="Cerrar sesión"
           >
