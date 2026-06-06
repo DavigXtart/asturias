@@ -18,11 +18,14 @@ public class RoomService {
     private final RoomRepository roomRepo;
     private final RoomAssignmentRepository assignmentRepo;
     private final GuestRepository guestRepo;
+    private final BedRepository bedRepo;
 
-    public RoomService(RoomRepository roomRepo, RoomAssignmentRepository assignmentRepo, GuestRepository guestRepo) {
+    public RoomService(RoomRepository roomRepo, RoomAssignmentRepository assignmentRepo,
+                       GuestRepository guestRepo, BedRepository bedRepo) {
         this.roomRepo = roomRepo;
         this.assignmentRepo = assignmentRepo;
         this.guestRepo = guestRepo;
+        this.bedRepo = bedRepo;
     }
 
     public List<RoomResponse> listRooms() {
@@ -44,7 +47,32 @@ public class RoomService {
         return new RoomResponse(room.getId(), room.getName(), room.getFloor(), room.getBedCount(), room.getPosition());
     }
 
+    @Transactional
+    public RoomResponse updateRoom(UUID roomId, UpdateRoomRequest req) {
+        Room room = roomRepo.findById(roomId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Habitacion no encontrada"));
+        if (req.name() != null) room.setName(req.name());
+        room.setBedCount(req.bedCount());
+        room = roomRepo.save(room);
+
+        if (req.beds() != null) {
+            bedRepo.deleteByRoomId(roomId);
+            int pos = 0;
+            for (UpdateRoomRequest.BedInput b : req.beds()) {
+                bedRepo.save(new Bed(roomId, b.bedType(), pos++));
+            }
+        }
+        return new RoomResponse(room.getId(), room.getName(), room.getFloor(), room.getBedCount(), room.getPosition());
+    }
+
+    public List<BedResponse> getBeds(UUID roomId) {
+        return bedRepo.findByRoomIdOrderByPositionAsc(roomId).stream()
+                .map(b -> new BedResponse(b.getId(), b.getBedType(), b.getPosition(), b.capacity()))
+                .toList();
+    }
+
     public void deleteRoom(UUID roomId) {
+        bedRepo.deleteByRoomId(roomId);
         roomRepo.deleteById(roomId);
     }
 

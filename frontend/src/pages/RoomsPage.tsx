@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DndContext,
@@ -11,8 +11,9 @@ import {
   useSensors,
   useDroppable,
   useDraggable,
+  closestCenter,
 } from '@dnd-kit/core';
-import { useRoomDistribution, useAssignRoom, useUnassignRoom } from '../hooks/useRooms';
+import { useRoomDistribution, useAssignRoom, useUnassignRoom, useRoomBeds, useUpdateRoom } from '../hooks/useRooms';
 import { useConfig } from '../hooks/useConfig';
 import { isAdmin } from '../lib/identity';
 import { getDateRange, formatDateShort, formatDayOfWeek } from '../lib/dates';
@@ -64,10 +65,11 @@ export default function RoomsPage() {
   const unassignMutation = useUnassignRoom();
 
   const [activeGuest, setActiveGuest] = useState<RoomDistributionGuest | null>(null);
+  const [editingRoom, setEditingRoom] = useState<RoomDistribution | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
 
   const roomsByFloor = useMemo(() => {
@@ -80,7 +82,6 @@ export default function RoomsPage() {
     return grouped;
   }, [distribution]);
 
-  // Bed stats
   const stats = useMemo(() => {
     if (!distribution) return { total: 0, occupied: 0, free: 0 };
     const total = distribution.rooms.reduce((s, r) => s + r.bedCount, 0);
@@ -150,7 +151,7 @@ export default function RoomsPage() {
         </div>
       </div>
 
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Unassigned tray */}
         <UnassignedTray guests={distribution?.unassigned ?? []} />
 
@@ -178,7 +179,7 @@ export default function RoomsPage() {
                     {/* Rooms grid */}
                     <div className={`grid gap-2 p-3 ${rooms.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                       {rooms.map(room => (
-                        <RoomDropZone key={room.id} room={room} day={activeDay} floorColor={meta.color} />
+                        <RoomDropZone key={room.id} room={room} day={activeDay} floorColor={meta.color} onEdit={() => setEditingRoom(room)} />
                       ))}
                     </div>
                   </div>
@@ -201,7 +202,7 @@ export default function RoomsPage() {
                   </div>
                   <div className="p-3">
                     {roomsByFloor['HORREO']!.map(room => (
-                      <RoomDropZone key={room.id} room={room} day={activeDay} floorColor="text-accent-amber" />
+                      <RoomDropZone key={room.id} room={room} day={activeDay} floorColor="text-accent-amber" onEdit={() => setEditingRoom(room)} />
                     ))}
                   </div>
                 </div>
@@ -210,7 +211,7 @@ export default function RoomsPage() {
           )}
         </div>
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {activeGuest && (
             <div className="px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-medium shadow-xl shadow-brand-500/30 cursor-grabbing">
               {activeGuest.fullName}
@@ -218,6 +219,13 @@ export default function RoomsPage() {
           )}
         </DragOverlay>
       </DndContext>
+
+      {/* Room edit modal */}
+      <AnimatePresence>
+        {editingRoom && isAdmin() && (
+          <RoomEditModal room={editingRoom} onClose={() => setEditingRoom(null)} />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -255,32 +263,33 @@ function DraggableGuest({ guest }: { guest: RoomDistributionGuest }) {
 
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 999,
   } : undefined;
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      layout
-      className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-grab active:cursor-grabbing select-none transition-shadow ${
+      className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-grab active:cursor-grabbing select-none touch-none transition-shadow ${
         isDragging
           ? 'opacity-50 bg-brand-500/30 text-brand-300 shadow-lg'
           : 'bg-surface-200 text-slate-300 hover:bg-surface-300'
       }`}
     >
       {guest.fullName}
-    </motion.div>
+    </div>
   );
 }
 
-function RoomDropZone({ room, day, floorColor }: { room: RoomDistribution; day: string; floorColor: string }) {
+function RoomDropZone({ room, day, floorColor, onEdit }: { room: RoomDistribution; day: string; floorColor: string; onEdit: () => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: `room-${room.id}` });
   const overCapacity = room.guests.length > room.bedCount;
   const unassignMutation = useUnassignRoom();
   const occupancy = room.guests.length;
   const capacity = room.bedCount;
+  const admin = isAdmin();
 
   return (
     <div
@@ -295,7 +304,12 @@ function RoomDropZone({ room, day, floorColor }: { room: RoomDistribution; day: 
     >
       {/* Room header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold text-white truncate">{room.name}</span>
+        <button
+          onClick={admin ? onEdit : undefined}
+          className={`text-xs font-bold text-white truncate ${admin ? 'cursor-pointer hover:text-brand-300 transition-colors' : ''}`}
+        >
+          {room.name}
+        </button>
         <div className="flex items-center gap-1">
           <span className={`text-[10px] font-semibold ${
             occupancy === 0 ? 'text-slate-500' :
@@ -303,6 +317,14 @@ function RoomDropZone({ room, day, floorColor }: { room: RoomDistribution; day: 
           }`}>
             {occupancy}/{capacity}
           </span>
+          {admin && (
+            <button onClick={onEdit} className="text-slate-500 hover:text-brand-400 transition-colors cursor-pointer ml-1" aria-label="Editar habitación">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -325,7 +347,7 @@ function RoomDropZone({ room, day, floorColor }: { room: RoomDistribution; day: 
         {room.guests.map(g => (
           <div key={g.id} className="group relative">
             <DraggableGuest guest={g} />
-            {isAdmin() && (
+            {admin && (
               <button
                 onClick={() => unassignMutation.mutate({ day, guestId: g.id })}
                 className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-red text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -338,5 +360,177 @@ function RoomDropZone({ room, day, floorColor }: { room: RoomDistribution; day: 
         ))}
       </div>
     </div>
+  );
+}
+
+/* ── Room Edit Modal ── */
+function RoomEditModal({ room, onClose }: { room: RoomDistribution; onClose: () => void }) {
+  const { data: beds, isLoading } = useRoomBeds(room.id);
+  const updateMutation = useUpdateRoom();
+
+  const [localBeds, setLocalBeds] = useState<{ bedType: 'INDIVIDUAL' | 'MATRIMONIO'; position: number }[]>([]);
+
+  useEffect(() => {
+    if (beds && beds.length > 0) {
+      setLocalBeds(beds.map(b => ({ bedType: b.bedType, position: b.position })));
+    } else if (beds && beds.length === 0) {
+      // Initialize from bedCount if no beds configured yet
+      setLocalBeds(
+        Array.from({ length: room.bedCount }, (_, i) => ({ bedType: 'INDIVIDUAL' as const, position: i }))
+      );
+    }
+  }, [beds, room.bedCount]);
+
+  const totalCapacity = localBeds.reduce((sum, b) => sum + (b.bedType === 'MATRIMONIO' ? 2 : 1), 0);
+
+  const addBed = (type: 'INDIVIDUAL' | 'MATRIMONIO') => {
+    setLocalBeds(prev => [...prev, { bedType: type, position: prev.length }]);
+  };
+
+  const removeBed = (index: number) => {
+    setLocalBeds(prev => prev.filter((_, i) => i !== index).map((b, i) => ({ ...b, position: i })));
+  };
+
+  const toggleBedType = (index: number) => {
+    setLocalBeds(prev => prev.map((b, i) =>
+      i === index ? { ...b, bedType: b.bedType === 'INDIVIDUAL' ? 'MATRIMONIO' : 'INDIVIDUAL' } : b
+    ));
+  };
+
+  const handleSave = () => {
+    updateMutation.mutate(
+      { id: room.id, bedCount: totalCapacity, beds: localBeds },
+      { onSuccess: onClose },
+    );
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-surface-100 border border-glass-border rounded-2xl overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-surface-300/30">
+          <h3 className="text-sm font-bold text-white">{room.name}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+          {isLoading ? (
+            <div className="text-center text-sm text-slate-500 py-8">Cargando...</div>
+          ) : (
+            <>
+              {/* Capacity summary */}
+              <div className="flex items-center justify-between bg-surface-0/60 rounded-xl px-3 py-2 border border-glass-border">
+                <span className="text-xs text-slate-400">Capacidad total</span>
+                <span className="text-sm font-bold text-white">{totalCapacity} persona{totalCapacity !== 1 ? 's' : ''}</span>
+              </div>
+
+              {/* Beds list */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Camas</p>
+                {localBeds.map((bed, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-surface-0/40 rounded-xl px-3 py-2 border border-glass-border">
+                    {/* Bed icon */}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      bed.bedType === 'MATRIMONIO' ? 'bg-accent-purple/20' : 'bg-brand-500/20'
+                    }`}>
+                      {bed.bedType === 'MATRIMONIO' ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-purple">
+                          <path d="M2 4v16M22 4v16M2 12h20M2 8h20" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-400">
+                          <path d="M2 4v16M22 4v16M2 12h20M2 8h20M12 8v4" />
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Type toggle */}
+                    <button
+                      onClick={() => toggleBedType(i)}
+                      className="flex-1 text-left cursor-pointer"
+                    >
+                      <p className="text-xs font-semibold text-white">
+                        {bed.bedType === 'MATRIMONIO' ? 'Matrimonio' : 'Individual'}
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        {bed.bedType === 'MATRIMONIO' ? '2 personas' : '1 persona'}
+                        {' · Toca para cambiar'}
+                      </p>
+                    </button>
+
+                    {/* Remove */}
+                    <button
+                      onClick={() => removeBed(i)}
+                      className="w-7 h-7 rounded-lg bg-accent-red/10 hover:bg-accent-red/20 text-accent-red flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                      aria-label="Quitar cama"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+
+                {/* Add bed buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => addBed('INDIVIDUAL')}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-surface-300/50 text-slate-400 hover:border-brand-500/50 hover:text-brand-400 transition-colors cursor-pointer"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span className="text-xs font-medium">Individual</span>
+                  </button>
+                  <button
+                    onClick={() => addBed('MATRIMONIO')}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-surface-300/50 text-slate-400 hover:border-accent-purple/50 hover:text-accent-purple transition-colors cursor-pointer"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span className="text-xs font-medium">Matrimonio</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2 px-4 py-3 border-t border-surface-300/30">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-slate-400 bg-surface-200 hover:bg-surface-300 transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={updateMutation.isPending}
+            className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

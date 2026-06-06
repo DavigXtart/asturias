@@ -29,9 +29,19 @@ public class RoomController {
         return service.createRoom(req);
     }
 
+    @PutMapping("/admin/rooms/{id}")
+    public RoomResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateRoomRequest req) {
+        return service.updateRoom(id, req);
+    }
+
     @PutMapping("/admin/rooms/{id}/beds")
     public RoomResponse updateBeds(@PathVariable UUID id, @Valid @RequestBody UpdateBedCountRequest req) {
         return service.updateBedCount(id, req.bedCount());
+    }
+
+    @GetMapping("/rooms/{id}/beds")
+    public java.util.List<BedResponse> getBeds(@PathVariable UUID id) {
+        return service.getBeds(id);
     }
 
     @DeleteMapping("/admin/rooms/{id}")

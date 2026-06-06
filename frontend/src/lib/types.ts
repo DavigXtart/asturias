@@ -77,3 +77,10 @@ export interface DayDistribution {
   rooms: RoomDistribution[];
   unassigned: RoomDistributionGuest[];
 }
+
+export interface Bed {
+  id: string;
+  bedType: 'INDIVIDUAL' | 'MATRIMONIO';
+  position: number;
+  capacity: number;
+}

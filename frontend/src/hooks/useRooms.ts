@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '../lib/api';
 import { queryClient } from '../lib/queryClient';
-import type { Room, DayDistribution } from '../lib/types';
+import type { Room, DayDistribution, Bed } from '../lib/types';
 
 export function useRooms() {
   return useQuery<Room[]>({
@@ -34,6 +34,26 @@ export function useUnassignRoom() {
   return useMutation({
     mutationFn: async (data: { day: string; guestId: string }) => {
       return (await api.delete('/api/rooms/assign', { params: data })).data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['rooms'] });
+    },
+  });
+}
+
+export function useRoomBeds(roomId: string | null) {
+  return useQuery<Bed[]>({
+    queryKey: ['rooms', 'beds', roomId],
+    queryFn: async () => (await api.get<Bed[]>(`/api/rooms/${roomId}/beds`)).data,
+    enabled: !!roomId,
+  });
+}
+
+export function useUpdateRoom() {
+  return useMutation({
+    mutationFn: async (data: { id: string; name?: string; bedCount: number; beds: { bedType: string; position: number }[] }) => {
+      const { id, ...body } = data;
+      return (await api.put(`/api/admin/rooms/${id}`, body)).data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['rooms'] });
