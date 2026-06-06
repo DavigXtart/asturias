@@ -1,0 +1,17 @@
+# Local tooling / skills
+.claude/
+
+# Node
+node_modules/
+dist/
+.env
+.env.*
+
+# Java / Maven / Gradle
+target/
+build/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db
