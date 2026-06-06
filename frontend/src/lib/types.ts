@@ -49,6 +49,15 @@ export interface CostumeGroup {
   members: string[];
 }
 
+export interface BallPair {
+  ballColors: string[];
+}
+
+export interface BallsView {
+  myBallColor: string;
+  pairs: BallPair[];
+}
+
 export type FloorName = 'PLANTA_1' | 'PLANTA_2' | 'PLANTA_3' | 'HORREO';
 
 export interface Room {

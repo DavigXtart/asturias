@@ -1,6 +1,7 @@
 package com.asturias2026.costume;
 
 import com.asturias2026.costume.dto.AdminPairsResponse;
+import com.asturias2026.costume.dto.BallsViewResponse;
 import com.asturias2026.costume.dto.DrawResult;
 import com.asturias2026.costume.dto.MyPairResponse;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,11 @@ public class CostumeController {
     @GetMapping("/costume/me")
     public MyPairResponse myPair(@RequestHeader("X-Guest-Id") UUID guestId) {
         return service.myPair(guestId);
+    }
+
+    @GetMapping("/costume/balls")
+    public BallsViewResponse ballsView(@RequestHeader("X-Guest-Id") UUID guestId) {
+        return service.ballsView(guestId);
     }
 
     @GetMapping("/admin/costume/pairs")

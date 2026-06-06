@@ -20,6 +20,9 @@ public class CostumePairMember {
     @Column(name = "guest_id")
     private UUID guestId;
 
+    @Column(name = "ball_color")
+    private String ballColor;
+
     protected CostumePairMember() {}
 
     public CostumePairMember(UUID pairId, UUID guestId) {
@@ -27,6 +30,13 @@ public class CostumePairMember {
         this.guestId = guestId;
     }
 
+    public CostumePairMember(UUID pairId, UUID guestId, String ballColor) {
+        this.pairId = pairId;
+        this.guestId = guestId;
+        this.ballColor = ballColor;
+    }
+
     public UUID getPairId() { return pairId; }
     public UUID getGuestId() { return guestId; }
+    public String getBallColor() { return ballColor; }
 }
