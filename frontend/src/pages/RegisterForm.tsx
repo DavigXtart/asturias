@@ -18,7 +18,7 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
   const { data: config, isLoading: loadingConfig } = useConfig();
   const registerMutation = useRegisterGuest();
 
-  const [cityId, setCityId] = useState<number | undefined>(guest.cityId ?? undefined);
+  const [cityId, setCityId] = useState<string | undefined>(guest.cityId ?? undefined);
   const [cityOther, setCityOther] = useState(guest.cityOther ?? '');
   const [showOther, setShowOther] = useState(!!guest.cityOther);
   const [arrivalDate, setArrivalDate] = useState(guest.arrivalDate ?? '');
@@ -74,7 +74,7 @@ export default function RegisterForm({ guest, onDone }: RegisterFormProps) {
               <div className="space-y-2">
                 <select
                   value={cityId ?? ''}
-                  onChange={e => setCityId(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={e => setCityId(e.target.value || undefined)}
                   className="w-full px-4 py-3 bg-surface-100 border border-glass-border rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none cursor-pointer"
                   aria-label="Ciudad de salida"
                 >

@@ -12,7 +12,7 @@ export function useCars(direction: CarDirection) {
 
 export function useCreateCar() {
   return useMutation({
-    mutationFn: async (data: { driverGuestId: number; direction: CarDirection; travelDate: string; place: string; passengerSeats: number }) => {
+    mutationFn: async (data: { driverGuestId: string; direction: CarDirection; travelDate: string; place: string; passengerSeats: number }) => {
       return (await api.post('/api/cars', data)).data;
     },
     onSuccess: () => {
@@ -23,7 +23,7 @@ export function useCreateCar() {
 
 export function useJoinCar() {
   return useMutation({
-    mutationFn: async (carId: number) => {
+    mutationFn: async (carId: string) => {
       return (await api.post(`/api/cars/${carId}/join`)).data;
     },
     onSuccess: () => {
@@ -34,7 +34,7 @@ export function useJoinCar() {
 
 export function useLeaveCar() {
   return useMutation({
-    mutationFn: async (carId: number) => {
+    mutationFn: async (carId: string) => {
       return (await api.delete(`/api/cars/${carId}/leave`)).data;
     },
     onSuccess: () => {

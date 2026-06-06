@@ -6,14 +6,14 @@ export interface TripConfig {
 }
 
 export interface City {
-  id: number;
+  id: string;
   name: string;
 }
 
 export interface Guest {
-  id: number;
+  id: string;
   fullName: string;
-  cityId: number | null;
+  cityId: string | null;
   cityOther: string | null;
   arrivalDate: string | null;
   departureDate: string | null;
@@ -24,13 +24,13 @@ export interface Guest {
 export type CarDirection = 'IDA' | 'VUELTA';
 
 export interface CarPassenger {
-  guestId: number;
+  guestId: string;
   fullName: string;
 }
 
 export interface Car {
-  id: number;
-  driverGuestId: number;
+  id: string;
+  driverGuestId: string;
   direction: CarDirection;
   travelDate: string;
   place: string;
@@ -52,7 +52,7 @@ export interface CostumeGroup {
 export type FloorName = 'PLANTA_1' | 'PLANTA_2' | 'PLANTA_3' | 'HORREO';
 
 export interface Room {
-  id: number;
+  id: string;
   name: string;
   floor: FloorName;
   bedCount: number;
@@ -60,12 +60,12 @@ export interface Room {
 }
 
 export interface RoomDistributionGuest {
-  id: number;
+  id: string;
   fullName: string;
 }
 
 export interface RoomDistribution {
-  id: number;
+  id: string;
   name: string;
   floor: FloorName;
   bedCount: number;

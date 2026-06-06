@@ -3,13 +3,12 @@
 const GUEST_ID_KEY = 'asturias2026_guestId';
 const ADMIN_PIN_KEY = 'asturias2026_adminPin';
 
-export function getGuestId(): number | null {
-  const v = localStorage.getItem(GUEST_ID_KEY);
-  return v ? Number(v) : null;
+export function getGuestId(): string | null {
+  return localStorage.getItem(GUEST_ID_KEY);
 }
 
-export function setGuestId(id: number): void {
-  localStorage.setItem(GUEST_ID_KEY, String(id));
+export function setGuestId(id: string): void {
+  localStorage.setItem(GUEST_ID_KEY, id);
 }
 
 export function clearGuestId(): void {

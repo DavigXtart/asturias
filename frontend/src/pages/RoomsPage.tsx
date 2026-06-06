@@ -76,14 +76,14 @@ export default function RoomsPage() {
     const { active, over } = event;
     if (!over || !activeDay) return;
 
-    const guestId = active.id as number;
+    const guestId = String(active.id);
     const targetId = String(over.id);
 
     if (targetId === 'unassigned') {
       // Remove from room
       unassignMutation.mutate({ day: activeDay, guestId });
     } else if (targetId.startsWith('room-')) {
-      const roomId = Number(targetId.replace('room-', ''));
+      const roomId = targetId.replace('room-', '');
       assignMutation.mutate({ day: activeDay, guestId, roomId });
     }
   }, [activeDay, assignMutation, unassignMutation]);

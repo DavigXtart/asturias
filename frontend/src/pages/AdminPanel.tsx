@@ -144,7 +144,7 @@ function AdminGuests() {
     }
   }, [newName, refetch]);
 
-  const handleDelete = useCallback(async (id: number) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (!confirm('¿Eliminar este invitado?')) return;
     await api.delete(`/api/admin/guests/${id}`);
     void refetch();
@@ -209,7 +209,7 @@ function AdminCities() {
     }
   }, [newCity, refetch]);
 
-  const handleDelete = useCallback(async (id: number) => {
+  const handleDelete = useCallback(async (id: string) => {
     await api.delete(`/api/admin/cities/${id}`);
     void refetch();
   }, [refetch]);

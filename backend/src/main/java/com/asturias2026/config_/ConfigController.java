@@ -20,6 +20,11 @@ public class ConfigController {
         return service.get();
     }
 
+    @GetMapping("/admin/config")
+    public ConfigResponse getAdmin() {
+        return service.get();
+    }
+
     @PutMapping("/admin/config")
     public ConfigResponse update(@Valid @RequestBody UpdateConfigRequest req) {
         return service.update(req);

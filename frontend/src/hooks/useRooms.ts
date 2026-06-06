@@ -21,7 +21,7 @@ export function useRoomDistribution(day: string) {
 
 export function useAssignRoom() {
   return useMutation({
-    mutationFn: async (data: { day: string; guestId: number; roomId: number }) => {
+    mutationFn: async (data: { day: string; guestId: string; roomId: string }) => {
       return (await api.put('/api/rooms/assign', data)).data;
     },
     onSuccess: () => {
@@ -32,7 +32,7 @@ export function useAssignRoom() {
 
 export function useUnassignRoom() {
   return useMutation({
-    mutationFn: async (data: { day: string; guestId: number }) => {
+    mutationFn: async (data: { day: string; guestId: string }) => {
       return (await api.delete('/api/rooms/assign', { params: data })).data;
     },
     onSuccess: () => {

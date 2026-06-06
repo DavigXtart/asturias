@@ -86,7 +86,7 @@ export default function CarsPage() {
   );
 }
 
-function CarCard({ car, index, guests }: { car: Car; index: number; guests: { id: number; fullName: string }[] }) {
+function CarCard({ car, index, guests }: { car: Car; index: number; guests: { id: string; fullName: string }[] }) {
   const myId = getGuestId();
   const joinMutation = useJoinCar();
   const leaveMutation = useLeaveCar();
