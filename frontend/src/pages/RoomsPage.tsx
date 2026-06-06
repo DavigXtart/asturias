@@ -120,35 +120,34 @@ export default function RoomsPage() {
       animate={{ opacity: 1 }}
       className="space-y-4"
     >
-      {/* Header: Day selector + Stats */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none flex-1">
-          {dates.map(d => (
-            <button
-              key={d}
-              onClick={() => setSelectedDay(d)}
-              className={`shrink-0 flex flex-col items-center py-2 px-3 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
-                d === activeDay
-                  ? 'bg-brand-500/20 border-brand-500 text-brand-300'
-                  : 'bg-surface-100 border-glass-border text-slate-400 hover:border-surface-300'
-              }`}
-            >
-              <span className="text-[10px] uppercase">{formatDayOfWeek(d)}</span>
-              <span className="font-semibold">{formatDateShort(d)}</span>
-            </button>
-          ))}
+      {/* Bed counter */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-bold text-white">Habitaciones</span>
+        <div className="flex items-center gap-2 bg-surface-100 border border-glass-border rounded-xl px-3 py-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-400">
+            <path d="M2 4v16M22 4v16M2 12h20M2 8h20M6 8v4M18 8v4" />
+          </svg>
+          <span className="text-sm font-bold text-white">{stats.occupied}/{stats.total}</span>
+          <span className="text-[10px] text-slate-500">{stats.free} libre{stats.free !== 1 ? 's' : ''}</span>
         </div>
+      </div>
 
-        {/* Bed counter */}
-        <div className="shrink-0 bg-surface-100 border border-glass-border rounded-xl px-3 py-2 text-center min-w-[80px]">
-          <div className="flex items-center justify-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-400">
-              <path d="M2 4v16M22 4v16M2 12h20M2 8h20M6 8v4M18 8v4" />
-            </svg>
-            <span className="text-sm font-bold text-white">{stats.occupied}/{stats.total}</span>
-          </div>
-          <p className="text-[10px] text-slate-500 mt-0.5">{stats.free} libre{stats.free !== 1 ? 's' : ''}</p>
-        </div>
+      {/* Day selector */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {dates.map(d => (
+          <button
+            key={d}
+            onClick={() => setSelectedDay(d)}
+            className={`shrink-0 flex flex-col items-center py-2 px-3 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+              d === activeDay
+                ? 'bg-brand-500/20 border-brand-500 text-brand-300'
+                : 'bg-surface-100 border-glass-border text-slate-400 hover:border-surface-300'
+            }`}
+          >
+            <span className="text-[10px] uppercase">{formatDayOfWeek(d)}</span>
+            <span className="font-semibold">{formatDateShort(d)}</span>
+          </button>
+        ))}
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
