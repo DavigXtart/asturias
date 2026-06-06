@@ -80,6 +80,7 @@ export default function CarsPage() {
           direction={direction}
           tripStart={config.tripStart}
           tripEnd={config.tripEnd}
+          guests={guests ?? []}
         />
       )}
     </motion.div>
@@ -202,33 +203,49 @@ function CarCard({ car, index, guests }: { car: Car; index: number; guests: { id
   );
 }
 
-function CreateCarModal({ open, onClose, direction, tripStart, tripEnd }: {
+function CreateCarModal({ open, onClose, direction, tripStart, tripEnd, guests }: {
   open: boolean; onClose: () => void; direction: CarDirection; tripStart: string; tripEnd: string;
+  guests: { id: string; fullName: string }[];
 }) {
-  const myId = getGuestId();
   const createMutation = useCreateCar();
   const dates = useMemo(() => getDateRange(tripStart, tripEnd), [tripStart, tripEnd]);
 
+  const [driverId, setDriverId] = useState('');
   const [travelDate, setTravelDate] = useState('');
   const [place, setPlace] = useState('');
   const [seats, setSeats] = useState(3);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!myId || !travelDate || !place) return;
+    if (!driverId || !travelDate || !place) return;
     await createMutation.mutateAsync({
-      driverGuestId: myId,
+      driverGuestId: driverId,
       direction,
       travelDate,
       place,
       passengerSeats: seats,
     });
     onClose();
-  }, [myId, travelDate, place, seats, direction, createMutation, onClose]);
+  }, [driverId, travelDate, place, seats, direction, createMutation, onClose]);
 
   return (
     <Modal open={open} onClose={onClose} title={`Nuevo coche — ${direction === 'IDA' ? 'Ida' : 'Vuelta'}`}>
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-300">Conductor</label>
+          <select
+            value={driverId}
+            onChange={e => setDriverId(e.target.value)}
+            className="w-full px-4 py-3 bg-surface-200 border border-glass-border rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none cursor-pointer"
+            aria-label="Conductor"
+          >
+            <option value="">Seleccionar conductor...</option>
+            {guests.map(g => (
+              <option key={g.id} value={g.id}>{g.fullName}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="space-y-2">
           <label className="block text-sm font-medium text-slate-300">Fecha</label>
           <div className="grid grid-cols-4 gap-2">
@@ -285,7 +302,7 @@ function CreateCarModal({ open, onClose, direction, tripStart, tripEnd }: {
 
         <button
           type="submit"
-          disabled={!travelDate || !place || createMutation.isPending}
+          disabled={!driverId || !travelDate || !place || createMutation.isPending}
           className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 disabled:opacity-40 transition-all cursor-pointer"
         >
           {createMutation.isPending ? 'Creando...' : 'Crear coche'}
