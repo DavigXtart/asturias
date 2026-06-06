@@ -1,7 +1,8 @@
-# Diseño — App del viaje a Asturias (casa rural)
+# Diseño — Asturias 2026 (app del viaje a la casa rural)
 
+**Nombre de la app:** Asturias 2026
 **Fecha:** 2026-06-06
-**Estado:** Aprobado (pendiente de revisión final del usuario)
+**Estado:** Aprobado
 
 ## 1. Resumen
 
@@ -142,6 +143,10 @@ Estética buscada: **moderna, elegante, tipo SaaS, muy dinámica**.
   iconos, orden de tabulación coherente.
 
 Esta guía aplica a **todas** las pantallas: registro, asistencia, coches, sorteo y habitaciones.
+
+**Libertad de diseño:** el usuario delega las decisiones concretas de diseño (paleta, marca,
+detalles de layout) en la implementación, con una única regla firme: **que sea lo más dinámico
+posible**. El nombre de la app es **"Asturias 2026"** y debe aparecer en la marca/encabezado.
 
 ## 5. Manejo de errores y casos límite
 
