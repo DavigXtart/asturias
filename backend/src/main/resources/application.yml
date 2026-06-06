@@ -10,6 +10,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: false
 app:
   cors:
     allowed-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
