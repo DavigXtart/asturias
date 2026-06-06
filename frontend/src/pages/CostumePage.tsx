@@ -1,23 +1,43 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCostumeMe, useBallsView } from '../hooks/useCostume';
+import { useGuests } from '../hooks/useGuests';
 import { getGuestId, isAdmin } from '../lib/identity';
 import api from '../lib/api';
 import { queryClient } from '../lib/queryClient';
+import type { Guest } from '../lib/types';
 
 type Phase = 'idle' | 'sorting' | 'paired' | 'revealed';
+
+const FORCED_PAIR_NAMES: [string, string][] = [
+  ['Paula', 'Vigara'],
+  ['Tota', 'Elsa'],
+];
+
+function findGuestByPartialName(guests: Guest[], partial: string): Guest | undefined {
+  const lower = partial.toLowerCase();
+  return guests.find(g => g.fullName.toLowerCase().includes(lower));
+}
 
 export default function CostumePage() {
   const guestId = getGuestId();
   const { data: costume, isError: meError } = useCostumeMe();
   const { data: ballsView, isError: ballsError } = useBallsView();
+  const { data: allGuests } = useGuests();
   const [phase, setPhase] = useState<Phase>('idle');
   const [drawRunning, setDrawRunning] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showDrawConfig, setShowDrawConfig] = useState(false);
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isDrawDone = !!costume && !!ballsView;
   const noDrawYet = meError || ballsError;
+
+  const registeredGuests = useMemo(() => {
+    if (!allGuests) return [];
+    return allGuests.filter(g => g.isRegistered).sort((a, b) => a.fullName.localeCompare(b.fullName));
+  }, [allGuests]);
 
   // Flatten all balls from pairs
   const allBalls = useMemo(() => {
@@ -58,14 +78,12 @@ export default function CostumePage() {
     allBalls.forEach(ball => {
       const row = Math.floor(ball.pairIndex / cols);
       const col = ball.pairIndex % cols;
-      // Find position within the pair
       const siblingsInPair = allBalls.filter(b => b.pairIndex === ball.pairIndex);
       const indexInPair = siblingsInPair.findIndex(b => b.color === ball.color);
       const pairSize = siblingsInPair.length;
 
       const cellX = (col + 0.5) / cols;
       const cellY = (row + 0.5) / Math.ceil(pairCount / cols);
-      // Offset within pair
       const offset = pairSize === 1 ? 0 : (indexInPair - (pairSize - 1) / 2) * 0.04;
 
       positions.push({ x: Math.max(0.05, Math.min(0.95, cellX + offset)), y: Math.max(0.05, Math.min(0.95, cellY)) });
@@ -85,18 +103,127 @@ export default function CostumePage() {
     setTimeout(() => setShowConfetti(false), 3000);
   }, []);
 
+  const toggleExclude = useCallback((id: string) => {
+    setExcludedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const handleRunDraw = useCallback(async () => {
     setDrawRunning(true);
     try {
-      await api.post('/api/admin/costume/draw');
+      // Build forced pairs from guest names
+      const forcedPairs: { guestId1: string; guestId2: string }[] = [];
+      if (registeredGuests.length > 0) {
+        for (const [name1, name2] of FORCED_PAIR_NAMES) {
+          const g1 = findGuestByPartialName(registeredGuests, name1);
+          const g2 = findGuestByPartialName(registeredGuests, name2);
+          if (g1 && g2 && !excludedIds.has(g1.id) && !excludedIds.has(g2.id)) {
+            forcedPairs.push({ guestId1: g1.id, guestId2: g2.id });
+          }
+        }
+      }
+
+      await api.post('/api/admin/costume/draw', {
+        excludeGuestIds: Array.from(excludedIds),
+        forcedPairs,
+      });
       void queryClient.invalidateQueries({ queryKey: ['costume'] });
       setPhase('idle');
+      setShowDrawConfig(false);
     } finally {
       setDrawRunning(false);
     }
-  }, []);
+  }, [excludedIds, registeredGuests]);
 
   if (!guestId) return null;
+
+  // Admin draw config modal
+  const drawConfigModal = showDrawConfig && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+      onClick={() => setShowDrawConfig(false)}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        onClick={e => e.stopPropagation()}
+        className="bg-surface-100 border border-glass-border rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col"
+      >
+        <div className="p-4 border-b border-glass-border">
+          <h3 className="text-base font-bold text-white">Configurar sorteo</h3>
+          <p className="text-xs text-slate-400 mt-1">Desmarca a quienes no participan</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
+          {registeredGuests.map(g => {
+            const isExcluded = excludedIds.has(g.id);
+            return (
+              <button
+                key={g.id}
+                onClick={() => toggleExclude(g.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                  isExcluded
+                    ? 'bg-red-500/10 border border-red-500/20'
+                    : 'bg-surface-50/50 border border-glass-border hover:bg-surface-200/50'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                  isExcluded ? 'border-red-500 bg-red-500/20' : 'border-brand-400 bg-brand-400'
+                }`}>
+                  {!isExcluded && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
+                <span className={`text-sm ${isExcluded ? 'text-slate-500 line-through' : 'text-white'}`}>
+                  {g.fullName}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Forced pairs info */}
+        <div className="px-4 py-2 border-t border-glass-border">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Parejas forzadas</p>
+          {FORCED_PAIR_NAMES.map(([n1, n2], i) => {
+            const g1 = findGuestByPartialName(registeredGuests, n1);
+            const g2 = findGuestByPartialName(registeredGuests, n2);
+            const active = g1 && g2 && !excludedIds.has(g1.id) && !excludedIds.has(g2.id);
+            return (
+              <p key={i} className={`text-xs ${active ? 'text-brand-300' : 'text-slate-600 line-through'}`}>
+                {g1?.fullName ?? n1} + {g2?.fullName ?? n2}
+              </p>
+            );
+          })}
+        </div>
+
+        <div className="p-4 border-t border-glass-border flex gap-2">
+          <button
+            onClick={() => setShowDrawConfig(false)}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-surface-200 text-slate-400 hover:bg-surface-300 transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => void handleRunDraw()}
+            disabled={drawRunning || registeredGuests.length - excludedIds.size < 2}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-accent-purple to-accent-pink hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {drawRunning ? 'Sorteando...' : `Sortear (${registeredGuests.length - excludedIds.size})`}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 
   // Draw not done yet
   if (noDrawYet && !isDrawDone) {
@@ -106,6 +233,8 @@ export default function CostumePage() {
         animate={{ opacity: 1 }}
         className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4"
       >
+        <AnimatePresence>{drawConfigModal}</AnimatePresence>
+
         <motion.div
           animate={{ rotate: [0, 10, -10, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -124,11 +253,10 @@ export default function CostumePage() {
         {isAdmin() && (
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => void handleRunDraw()}
-            disabled={drawRunning}
+            onClick={() => setShowDrawConfig(true)}
             className="mt-6 px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-accent-purple to-accent-pink hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
           >
-            {drawRunning ? 'Sorteando...' : 'Lanzar sorteo'}
+            Configurar y lanzar sorteo
           </motion.button>
         )}
       </motion.div>
@@ -153,6 +281,8 @@ export default function CostumePage() {
       animate={{ opacity: 1 }}
       className="flex flex-col items-center px-2"
     >
+      <AnimatePresence>{drawConfigModal}</AnimatePresence>
+
       {/* Confetti */}
       <AnimatePresence>
         {showConfetti && (
@@ -400,11 +530,11 @@ export default function CostumePage() {
       {isAdmin() && (
         <motion.button
           whileTap={{ scale: 0.95 }}
-          onClick={() => void handleRunDraw()}
+          onClick={() => setShowDrawConfig(true)}
           disabled={drawRunning}
           className="mt-8 px-4 py-2 rounded-lg text-xs font-medium bg-surface-200 text-slate-400 hover:bg-surface-300 transition-colors cursor-pointer disabled:opacity-50"
         >
-          {drawRunning ? 'Sorteando...' : 'Re-lanzar sorteo (admin)'}
+          Re-lanzar sorteo (admin)
         </motion.button>
       )}
     </motion.div>

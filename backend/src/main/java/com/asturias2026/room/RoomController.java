@@ -68,4 +68,9 @@ public class RoomController {
             @RequestParam UUID guestId) {
         service.unassign(day, guestId);
     }
+
+    @PostMapping("/admin/rooms/copy-beds")
+    public void copyBeds(@RequestBody CopyBedsRequest req) {
+        service.copyBeds(req.sourceDay(), req.targetDays());
+    }
 }

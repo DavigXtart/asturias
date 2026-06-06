@@ -1,10 +1,7 @@
 package com.asturias2026.costume;
 
 import com.asturias2026.common.ApiException;
-import com.asturias2026.costume.dto.AdminPairsResponse;
-import com.asturias2026.costume.dto.BallsViewResponse;
-import com.asturias2026.costume.dto.DrawResult;
-import com.asturias2026.costume.dto.MyPairResponse;
+import com.asturias2026.costume.dto.*;
 import com.asturias2026.guest.Guest;
 import com.asturias2026.guest.GuestRepository;
 import org.springframework.http.HttpStatus;
@@ -42,39 +39,69 @@ public class DrawService {
         this.guestRepo = guestRepo;
     }
 
-    public static List<List<UUID>> pair(List<UUID> ids, Random rnd) {
-        List<UUID> copy = new ArrayList<>(ids);
-        Collections.shuffle(copy, rnd);
+    public static List<List<UUID>> pair(List<UUID> ids, Random rnd, List<List<UUID>> forcedPairs) {
+        // Start with forced pairs
         List<List<UUID>> groups = new ArrayList<>();
-        for (int i = 0; i < copy.size() - 1; i += 2) {
+        Set<UUID> used = new HashSet<>();
+
+        if (forcedPairs != null) {
+            for (List<UUID> fp : forcedPairs) {
+                List<UUID> validPair = fp.stream().filter(ids::contains).toList();
+                if (validPair.size() == 2) {
+                    groups.add(new ArrayList<>(validPair));
+                    used.addAll(validPair);
+                }
+            }
+        }
+
+        // Remaining unforced IDs
+        List<UUID> remaining = new ArrayList<>(ids.stream().filter(id -> !used.contains(id)).toList());
+        Collections.shuffle(remaining, rnd);
+
+        for (int i = 0; i < remaining.size() - 1; i += 2) {
             List<UUID> group = new ArrayList<>();
-            group.add(copy.get(i));
-            group.add(copy.get(i + 1));
+            group.add(remaining.get(i));
+            group.add(remaining.get(i + 1));
             groups.add(group);
         }
-        if (copy.size() % 2 != 0) {
+        if (remaining.size() % 2 != 0) {
             if (!groups.isEmpty()) {
-                groups.get(groups.size() - 1).add(copy.get(copy.size() - 1));
+                groups.get(groups.size() - 1).add(remaining.get(remaining.size() - 1));
             } else {
-                groups.add(new ArrayList<>(List.of(copy.get(0))));
+                groups.add(new ArrayList<>(List.of(remaining.get(0))));
             }
         }
         return groups;
     }
 
     @Transactional
-    public DrawResult runDraw() {
+    public DrawResult runDraw(RunDrawRequest req) {
         memberRepo.deleteAll();
         pairRepo.deleteAll();
         drawRepo.deleteAll();
 
-        List<UUID> ids = guestRepo.findByRegisteredTrue().stream().map(Guest::getId).toList();
+        Set<UUID> excluded = (req != null && req.excludeGuestIds() != null)
+                ? new HashSet<>(req.excludeGuestIds()) : Set.of();
+
+        List<UUID> ids = guestRepo.findByRegisteredTrue().stream()
+                .map(Guest::getId)
+                .filter(id -> !excluded.contains(id))
+                .toList();
+
         if (ids.size() < 2) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Se necesitan al menos 2 invitados registrados");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Se necesitan al menos 2 invitados participantes");
+        }
+
+        // Build forced pairs as UUID lists
+        List<List<UUID>> forcedPairs = new ArrayList<>();
+        if (req != null && req.forcedPairs() != null) {
+            for (RunDrawRequest.ForcedPair fp : req.forcedPairs()) {
+                forcedPairs.add(List.of(fp.guestId1(), fp.guestId2()));
+            }
         }
 
         CostumeDraw draw = drawRepo.save(new CostumeDraw("DONE"));
-        List<List<UUID>> groups = pair(new ArrayList<>(ids), new Random());
+        List<List<UUID>> groups = pair(new ArrayList<>(ids), new Random(), forcedPairs);
 
         // Shuffle ball colors for unique per-person assignment
         List<String> shuffledBallColors = new ArrayList<>(BALL_PALETTE);

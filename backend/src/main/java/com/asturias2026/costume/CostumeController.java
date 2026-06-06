@@ -1,9 +1,6 @@
 package com.asturias2026.costume;
 
-import com.asturias2026.costume.dto.AdminPairsResponse;
-import com.asturias2026.costume.dto.BallsViewResponse;
-import com.asturias2026.costume.dto.DrawResult;
-import com.asturias2026.costume.dto.MyPairResponse;
+import com.asturias2026.costume.dto.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,8 +17,8 @@ public class CostumeController {
     }
 
     @PostMapping("/admin/costume/draw")
-    public DrawResult runDraw() {
-        return service.runDraw();
+    public DrawResult runDraw(@RequestBody(required = false) RunDrawRequest req) {
+        return service.runDraw(req);
     }
 
     @GetMapping("/costume/me")

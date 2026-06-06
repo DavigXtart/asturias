@@ -127,6 +127,25 @@ public class RoomService {
     }
 
     @Transactional
+    public void copyBeds(LocalDate sourceDay, List<LocalDate> targetDays) {
+        List<Bed> sourceBeds = bedRepo.findByDayOrderByPositionAsc(sourceDay);
+        if (sourceBeds.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "No hay camas configuradas para el dia origen");
+        }
+        for (LocalDate target : targetDays) {
+            if (target.equals(sourceDay)) continue;
+            // Delete existing beds for this target day
+            for (Room room : roomRepo.findAllByOrderByFloorAscPositionAsc()) {
+                bedRepo.deleteByRoomIdAndDay(room.getId(), target);
+            }
+            // Copy all source beds
+            for (Bed src : sourceBeds) {
+                bedRepo.save(new Bed(src.getRoomId(), src.getBedType(), src.getPosition(), target));
+            }
+        }
+    }
+
+    @Transactional
     public void assign(LocalDate day, UUID guestId, UUID roomId) {
         assignmentRepo.findByDayAndGuestId(day, guestId).ifPresentOrElse(
                 a -> {
