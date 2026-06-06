@@ -55,18 +55,18 @@ public class RoomService {
         room.setBedCount(req.bedCount());
         room = roomRepo.save(room);
 
-        if (req.beds() != null) {
-            bedRepo.deleteByRoomId(roomId);
+        if (req.beds() != null && req.day() != null) {
+            bedRepo.deleteByRoomIdAndDay(roomId, req.day());
             int pos = 0;
             for (UpdateRoomRequest.BedInput b : req.beds()) {
-                bedRepo.save(new Bed(roomId, b.bedType(), pos++));
+                bedRepo.save(new Bed(roomId, b.bedType(), pos++, req.day()));
             }
         }
         return new RoomResponse(room.getId(), room.getName(), room.getFloor(), room.getBedCount(), room.getPosition());
     }
 
-    public List<BedResponse> getBeds(UUID roomId) {
-        return bedRepo.findByRoomIdOrderByPositionAsc(roomId).stream()
+    public List<BedResponse> getBeds(UUID roomId, LocalDate day) {
+        return bedRepo.findByRoomIdAndDayOrderByPositionAsc(roomId, day).stream()
                 .map(b -> new BedResponse(b.getId(), b.getBedType(), b.getPosition(), b.capacity()))
                 .toList();
     }
@@ -80,10 +80,10 @@ public class RoomService {
         List<Room> rooms = roomRepo.findAllByOrderByFloorAscPositionAsc();
         List<Guest> present = guestRepo.findPresentOn(day);
         List<RoomAssignment> assignments = assignmentRepo.findByDay(day);
-        List<Bed> allBeds = bedRepo.findAll();
+        List<Bed> dayBeds = bedRepo.findByDayOrderByPositionAsc(day);
 
-        // Build a map: roomId -> list of beds
-        Map<UUID, List<Bed>> bedsByRoom = allBeds.stream()
+        // Build a map: roomId -> list of beds for this day
+        Map<UUID, List<Bed>> bedsByRoom = dayBeds.stream()
                 .collect(Collectors.groupingBy(Bed::getRoomId));
 
         // Build a map: roomId -> list of assigned guest IDs
@@ -109,8 +109,11 @@ public class RoomService {
             List<Bed> roomBeds = bedsByRoom.getOrDefault(room.getId(), List.of());
             int individualBeds = (int) roomBeds.stream().filter(b -> "INDIVIDUAL".equals(b.getBedType())).count();
             int matrimonioBeds = (int) roomBeds.stream().filter(b -> "MATRIMONIO".equals(b.getBedType())).count();
+            // Use per-day bed capacity if configured, otherwise fall back to room default
+            int bedCount = roomBeds.isEmpty() ? room.getBedCount()
+                    : roomBeds.stream().mapToInt(Bed::capacity).sum();
             return new DayDistributionResponse.RoomWithGuests(
-                    room.getId(), room.getName(), room.getFloor(), room.getBedCount(),
+                    room.getId(), room.getName(), room.getFloor(), bedCount,
                     individualBeds, matrimonioBeds, guests);
         }).toList();
 

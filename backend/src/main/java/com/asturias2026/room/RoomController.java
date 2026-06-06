@@ -40,8 +40,10 @@ public class RoomController {
     }
 
     @GetMapping("/rooms/{id}/beds")
-    public java.util.List<BedResponse> getBeds(@PathVariable UUID id) {
-        return service.getBeds(id);
+    public java.util.List<BedResponse> getBeds(
+            @PathVariable UUID id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate day) {
+        return service.getBeds(id, day);
     }
 
     @DeleteMapping("/admin/rooms/{id}")

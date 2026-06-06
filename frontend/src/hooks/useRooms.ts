@@ -41,17 +41,17 @@ export function useUnassignRoom() {
   });
 }
 
-export function useRoomBeds(roomId: string | null) {
+export function useRoomBeds(roomId: string | null, day: string) {
   return useQuery<Bed[]>({
-    queryKey: ['rooms', 'beds', roomId],
-    queryFn: async () => (await api.get<Bed[]>(`/api/rooms/${roomId}/beds`)).data,
-    enabled: !!roomId,
+    queryKey: ['rooms', 'beds', roomId, day],
+    queryFn: async () => (await api.get<Bed[]>(`/api/rooms/${roomId}/beds`, { params: { day } })).data,
+    enabled: !!roomId && !!day,
   });
 }
 
 export function useUpdateRoom() {
   return useMutation({
-    mutationFn: async (data: { id: string; name?: string; bedCount: number; beds: { bedType: string; position: number }[] }) => {
+    mutationFn: async (data: { id: string; name?: string; bedCount: number; day: string; beds: { bedType: string; position: number }[] }) => {
       const { id, ...body } = data;
       return (await api.put(`/api/rooms/${id}`, body)).data;
     },

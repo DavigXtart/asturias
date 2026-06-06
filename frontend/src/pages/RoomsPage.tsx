@@ -221,7 +221,7 @@ export default function RoomsPage() {
       {/* Room edit modal */}
       <AnimatePresence>
         {editingRoom && (
-          <RoomEditModal room={editingRoom} onClose={() => setEditingRoom(null)} />
+          <RoomEditModal room={editingRoom} day={activeDay} onClose={() => setEditingRoom(null)} />
         )}
       </AnimatePresence>
     </motion.div>
@@ -406,8 +406,8 @@ function RoomDropZone({ room, day, floorColor, onEdit }: { room: RoomDistributio
 }
 
 /* ── Room Edit Modal ── */
-function RoomEditModal({ room, onClose }: { room: RoomDistribution; onClose: () => void }) {
-  const { data: beds, isLoading } = useRoomBeds(room.id);
+function RoomEditModal({ room, day, onClose }: { room: RoomDistribution; day: string; onClose: () => void }) {
+  const { data: beds, isLoading } = useRoomBeds(room.id, day);
   const updateMutation = useUpdateRoom();
 
   const [localBeds, setLocalBeds] = useState<{ bedType: 'INDIVIDUAL' | 'MATRIMONIO'; position: number }[]>([]);
@@ -442,7 +442,7 @@ function RoomEditModal({ room, onClose }: { room: RoomDistribution; onClose: () 
   const handleSave = () => {
     setError('');
     updateMutation.mutate(
-      { id: room.id, bedCount: totalCapacity, beds: localBeds },
+      { id: room.id, bedCount: totalCapacity, day, beds: localBeds },
       { onSuccess: onClose, onError: () => setError('Error al guardar. Comprueba que eres admin.') },
     );
   };
