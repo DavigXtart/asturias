@@ -18,7 +18,7 @@ public class Bed {
     private UUID roomId;
 
     @Column(name = "bed_type", nullable = false)
-    private String bedType; // INDIVIDUAL or MATRIMONIO
+    private String bedType; // INDIVIDUAL, MATRIMONIO or HINCHABLE
 
     @Column(nullable = false)
     private int position = 0;

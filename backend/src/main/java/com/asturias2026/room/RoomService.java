@@ -110,12 +110,13 @@ public class RoomService {
             List<Bed> roomBeds = bedsByRoom.getOrDefault(room.getId(), List.of());
             int individualBeds = (int) roomBeds.stream().filter(b -> "INDIVIDUAL".equals(b.getBedType())).count();
             int matrimonioBeds = (int) roomBeds.stream().filter(b -> "MATRIMONIO".equals(b.getBedType())).count();
+            int hinchableBeds = (int) roomBeds.stream().filter(b -> "HINCHABLE".equals(b.getBedType())).count();
             // Use per-day bed capacity if configured, otherwise fall back to room default
             int bedCount = roomBeds.isEmpty() ? room.getBedCount()
                     : roomBeds.stream().mapToInt(Bed::capacity).sum();
             return new DayDistributionResponse.RoomWithGuests(
                     room.getId(), room.getName(), room.getFloor(), bedCount,
-                    individualBeds, matrimonioBeds, guests);
+                    individualBeds, matrimonioBeds, hinchableBeds, guests);
         }).toList();
 
         List<DayDistributionResponse.GuestInfo> unassigned = present.stream()

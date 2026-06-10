@@ -80,6 +80,7 @@ export interface RoomDistribution {
   bedCount: number;
   individualBeds: number;
   matrimonioBeds: number;
+  hinchableBeds: number;
   guests: RoomDistributionGuest[];
 }
 
@@ -91,7 +92,7 @@ export interface DayDistribution {
 
 export interface Bed {
   id: string;
-  bedType: 'INDIVIDUAL' | 'MATRIMONIO';
+  bedType: 'INDIVIDUAL' | 'MATRIMONIO' | 'HINCHABLE';
   position: number;
   capacity: number;
 }

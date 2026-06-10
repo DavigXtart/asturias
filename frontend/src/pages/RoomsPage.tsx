@@ -350,7 +350,7 @@ function RoomDropZone({ room, day, floorColor, onEdit }: { room: RoomDistributio
       </div>
 
       {/* Bed type icons */}
-      {(room.individualBeds > 0 || room.matrimonioBeds > 0) && (
+      {(room.individualBeds > 0 || room.matrimonioBeds > 0 || room.hinchableBeds > 0) && (
         <div className="flex items-center gap-2 mb-1.5">
           {room.individualBeds > 0 && (
             <div className="flex items-center gap-0.5" title="Individuales">
@@ -366,6 +366,14 @@ function RoomDropZone({ room, day, floorColor, onEdit }: { room: RoomDistributio
                 <path d="M2 4v16M22 4v16M2 12h20M2 8h20" />
               </svg>
               <span className="text-[10px] text-slate-400 font-medium">{room.matrimonioBeds}</span>
+            </div>
+          )}
+          {room.hinchableBeds > 0 && (
+            <div className="flex items-center gap-0.5" title="Hinchable">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-amber">
+                <path d="M2 12c0-3 4-5 10-5s10 2 10 5M2 12v4c0 2 4 4 10 4s10-2 10-4v-4" />
+              </svg>
+              <span className="text-[10px] text-slate-400 font-medium">{room.hinchableBeds}</span>
             </div>
           )}
         </div>
@@ -410,7 +418,7 @@ function RoomEditModal({ room, day, onClose }: { room: RoomDistribution; day: st
   const { data: beds, isLoading } = useRoomBeds(room.id, day);
   const updateMutation = useUpdateRoom();
 
-  const [localBeds, setLocalBeds] = useState<{ bedType: 'INDIVIDUAL' | 'MATRIMONIO'; position: number }[]>([]);
+  const [localBeds, setLocalBeds] = useState<{ bedType: 'INDIVIDUAL' | 'MATRIMONIO' | 'HINCHABLE'; position: number }[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -425,7 +433,7 @@ function RoomEditModal({ room, day, onClose }: { room: RoomDistribution; day: st
 
   const totalCapacity = localBeds.reduce((sum, b) => sum + (b.bedType === 'MATRIMONIO' ? 2 : 1), 0);
 
-  const addBed = (type: 'INDIVIDUAL' | 'MATRIMONIO') => {
+  const addBed = (type: 'INDIVIDUAL' | 'MATRIMONIO' | 'HINCHABLE') => {
     setLocalBeds(prev => [...prev, { bedType: type, position: prev.length }]);
   };
 
@@ -434,8 +442,9 @@ function RoomEditModal({ room, day, onClose }: { room: RoomDistribution; day: st
   };
 
   const toggleBedType = (index: number) => {
+    const cycle = { INDIVIDUAL: 'MATRIMONIO', MATRIMONIO: 'HINCHABLE', HINCHABLE: 'INDIVIDUAL' } as const;
     setLocalBeds(prev => prev.map((b, i) =>
-      i === index ? { ...b, bedType: b.bedType === 'INDIVIDUAL' ? 'MATRIMONIO' : 'INDIVIDUAL' } : b
+      i === index ? { ...b, bedType: cycle[b.bedType] } : b
     ));
   };
 
@@ -498,11 +507,15 @@ function RoomEditModal({ room, day, onClose }: { room: RoomDistribution; day: st
                   <div key={i} className="flex items-center gap-2 bg-surface-0/40 rounded-xl px-3 py-2 border border-glass-border">
                     {/* Bed icon */}
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      bed.bedType === 'MATRIMONIO' ? 'bg-accent-purple/20' : 'bg-brand-500/20'
+                      bed.bedType === 'MATRIMONIO' ? 'bg-accent-purple/20' : bed.bedType === 'HINCHABLE' ? 'bg-accent-amber/20' : 'bg-brand-500/20'
                     }`}>
                       {bed.bedType === 'MATRIMONIO' ? (
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-purple">
                           <path d="M2 4v16M22 4v16M2 12h20M2 8h20" />
+                        </svg>
+                      ) : bed.bedType === 'HINCHABLE' ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-amber">
+                          <path d="M2 12c0-3 4-5 10-5s10 2 10 5M2 12v4c0 2 4 4 10 4s10-2 10-4v-4" />
                         </svg>
                       ) : (
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-400">
@@ -517,7 +530,7 @@ function RoomEditModal({ room, day, onClose }: { room: RoomDistribution; day: st
                       className="flex-1 text-left cursor-pointer"
                     >
                       <p className="text-xs font-semibold text-white">
-                        {bed.bedType === 'MATRIMONIO' ? 'Matrimonio' : 'Individual'}
+                        {bed.bedType === 'MATRIMONIO' ? 'Matrimonio' : bed.bedType === 'HINCHABLE' ? 'Hinchable' : 'Individual'}
                       </p>
                       <p className="text-[10px] text-slate-500">
                         {bed.bedType === 'MATRIMONIO' ? '2 personas' : '1 persona'}
@@ -557,6 +570,15 @@ function RoomEditModal({ room, day, onClose }: { room: RoomDistribution; day: st
                       <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                     <span className="text-xs font-medium">Matrimonio</span>
+                  </button>
+                  <button
+                    onClick={() => addBed('HINCHABLE')}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-surface-300/50 text-slate-400 hover:border-accent-amber/50 hover:text-accent-amber transition-colors cursor-pointer"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span className="text-xs font-medium">Hinchable</span>
                   </button>
                 </div>
               </div>

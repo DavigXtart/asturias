@@ -10,7 +10,7 @@ public record DayDistributionResponse(
         List<GuestInfo> unassigned) {
 
     public record RoomWithGuests(UUID id, String name, String floor, int bedCount,
-                                    int individualBeds, int matrimonioBeds,
+                                    int individualBeds, int matrimonioBeds, int hinchableBeds,
                                     List<GuestInfo> guests) {}
     public record GuestInfo(UUID id, String fullName) {}
 }
