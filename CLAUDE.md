@@ -50,6 +50,7 @@ frontend/src/
 
 ### Per-Day Bed Configuration
 - Cada habitación tiene camas configuradas **por día** (tabla `beds` con columna `day`)
+- Tipos de cama: `INDIVIDUAL` (1 persona), `MATRIMONIO` (2 personas), `HINCHABLE` (1 persona, colchón hinchable)
 - Si un día no tiene config, se usa `room.bedCount` como fallback
 - Endpoint `POST /api/admin/rooms/copy-beds` para replicar config de un día a otros
 
@@ -61,7 +62,7 @@ frontend/src/
 
 ### Room Assignments
 - Drag & drop para asignar invitados a habitaciones
-- Distribución por día con conteo de camas individuales y matrimonio
+- Distribución por día con conteo de camas individuales, matrimonio e hinchables
 - Cualquier usuario puede editar camas (no solo admin)
 - Botón "Limpiar todo" para desasignar todos los invitados de un día
 
