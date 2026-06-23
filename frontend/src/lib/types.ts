@@ -96,3 +96,13 @@ export interface Bed {
   position: number;
   capacity: number;
 }
+
+export interface MealAssignment {
+  meal: 'DESAYUNO' | 'COMIDA' | 'CENA';
+  groupNumber: number;
+}
+
+export interface DaySchedule {
+  date: string;
+  meals: MealAssignment[];
+}

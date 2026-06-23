@@ -2,6 +2,7 @@ package com.asturias2026.kitchen;
 
 import com.asturias2026.kitchen.dto.AssignMemberRequest;
 import com.asturias2026.kitchen.dto.DayBalanceResponse;
+import com.asturias2026.kitchen.dto.DayScheduleResponse;
 import com.asturias2026.kitchen.dto.KitchenGroupResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -38,5 +39,10 @@ public class KitchenController {
     @GetMapping("/kitchen/balance")
     public List<DayBalanceResponse> getBalance() {
         return service.getBalance();
+    }
+
+    @GetMapping("/kitchen/schedule")
+    public List<DayScheduleResponse> getSchedule() {
+        return service.generateSchedule();
     }
 }

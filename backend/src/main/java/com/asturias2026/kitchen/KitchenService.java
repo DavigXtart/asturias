@@ -6,8 +6,10 @@ import com.asturias2026.config_.dto.ConfigResponse;
 import com.asturias2026.guest.Guest;
 import com.asturias2026.guest.GuestRepository;
 import com.asturias2026.kitchen.dto.DayBalanceResponse;
+import com.asturias2026.kitchen.dto.DayScheduleResponse;
 import com.asturias2026.kitchen.dto.KitchenGroupResponse;
 import com.asturias2026.kitchen.dto.KitchenMemberResponse;
+import com.asturias2026.kitchen.dto.MealAssignment;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,24 +85,82 @@ public class KitchenService {
         List<DayBalanceResponse> result = new ArrayList<>();
         LocalDate day = cfg.tripStart();
         while (day.isBefore(cfg.tripEnd())) {
-            Map<Integer, Integer> counts = new LinkedHashMap<>();
-            for (int g = 1; g <= 4; g++) {
-                counts.put(g, 0);
-            }
-            LocalDate current = day;
-            for (KitchenMember member : allMembers) {
-                Guest guest = guestMap.get(member.getGuestId());
-                if (guest != null && guest.isRegistered()
-                        && guest.getArrivalDate() != null && guest.getDepartureDate() != null
-                        && !guest.getArrivalDate().isAfter(current)
-                        && guest.getDepartureDate().isAfter(current)) {
-                    counts.merge(member.getGroupNumber(), 1, Integer::sum);
-                }
-            }
-            result.add(new DayBalanceResponse(current, counts));
+            result.add(new DayBalanceResponse(day, buildPresenceMap(day, allMembers, guestMap)));
             day = day.plusDays(1);
         }
         return result;
+    }
+
+    public List<DayScheduleResponse> generateSchedule() {
+        ConfigResponse cfg = configService.get();
+        List<KitchenMember> allMembers = repo.findAll();
+        Map<UUID, Guest> guestMap = guestRepo.findAll().stream()
+                .collect(Collectors.toMap(Guest::getId, g -> g));
+
+        String[] meals = {"DESAYUNO", "COMIDA", "CENA"};
+
+        // Collect all days
+        List<LocalDate> days = new ArrayList<>();
+        LocalDate day = cfg.tripStart();
+        while (day.isBefore(cfg.tripEnd())) {
+            days.add(day);
+            day = day.plusDays(1);
+        }
+
+        // Track total meals assigned per group
+        Map<Integer, Integer> totalMealsAssigned = new HashMap<>();
+        for (int g = 1; g <= 4; g++) totalMealsAssigned.put(g, 0);
+
+        List<DayScheduleResponse> schedule = new ArrayList<>();
+
+        for (LocalDate d : days) {
+            Map<Integer, Integer> presence = buildPresenceMap(d, allMembers, guestMap);
+            Set<Integer> assignedToday = new HashSet<>();
+            List<MealAssignment> dayMeals = new ArrayList<>();
+
+            for (String meal : meals) {
+                int bestGroup = -1;
+                int bestScore = Integer.MIN_VALUE;
+
+                for (int g = 1; g <= 4; g++) {
+                    int presenceCount = presence.getOrDefault(g, 0);
+                    int score = presenceCount * 10
+                            - totalMealsAssigned.get(g);
+                    if (assignedToday.contains(g)) {
+                        score -= 1000;
+                    }
+                    if (score > bestScore || (score == bestScore && g < bestGroup)) {
+                        bestScore = score;
+                        bestGroup = g;
+                    }
+                }
+
+                dayMeals.add(new MealAssignment(meal, bestGroup));
+                assignedToday.add(bestGroup);
+                totalMealsAssigned.merge(bestGroup, 1, Integer::sum);
+            }
+
+            schedule.add(new DayScheduleResponse(d, dayMeals));
+        }
+
+        return schedule;
+    }
+
+    private Map<Integer, Integer> buildPresenceMap(LocalDate date, List<KitchenMember> allMembers, Map<UUID, Guest> guestMap) {
+        Map<Integer, Integer> counts = new LinkedHashMap<>();
+        for (int g = 1; g <= 4; g++) {
+            counts.put(g, 0);
+        }
+        for (KitchenMember member : allMembers) {
+            Guest guest = guestMap.get(member.getGuestId());
+            if (guest != null && guest.isRegistered()
+                    && guest.getArrivalDate() != null && guest.getDepartureDate() != null
+                    && !guest.getArrivalDate().isAfter(date)
+                    && guest.getDepartureDate().isAfter(date)) {
+                counts.merge(member.getGroupNumber(), 1, Integer::sum);
+            }
+        }
+        return counts;
     }
 
     private KitchenGroupResponse getGroup(int groupNumber) {

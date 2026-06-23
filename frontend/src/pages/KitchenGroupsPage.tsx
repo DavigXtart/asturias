@@ -7,6 +7,7 @@ import api from '../lib/api';
 import { queryClient } from '../lib/queryClient';
 import { PageSkeleton } from '../components/Skeleton';
 import ErrorMessage from '../components/ErrorMessage';
+import type { DaySchedule } from '../lib/types';
 
 interface KitchenMember {
   guestId: string;
@@ -29,6 +30,13 @@ function useKitchenGroups() {
   return useQuery<KitchenGroupData[]>({
     queryKey: ['kitchen-groups'],
     queryFn: async () => (await api.get<KitchenGroupData[]>('/api/kitchen/groups')).data,
+  });
+}
+
+function useKitchenSchedule() {
+  return useQuery<DaySchedule[]>({
+    queryKey: ['kitchen-schedule'],
+    queryFn: async () => (await api.get<DaySchedule[]>('/api/kitchen/schedule')).data,
   });
 }
 
@@ -71,25 +79,8 @@ export default function KitchenGroupsPage() {
         ))}
       </div>
 
-      {/* Coming soon */}
-      <div className="bg-surface-100 rounded-2xl border border-glass-border p-6 flex flex-col items-center text-center space-y-3">
-        <div className="w-14 h-14 rounded-full bg-surface-200 flex items-center justify-center">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        </div>
-        <p className="text-sm font-bold text-white">Coming soon</p>
-        <p className="text-xs text-slate-400">El reparto de días por grupo estará disponible pronto</p>
-        <a
-          href="https://www.youtube.com/shorts/Zb5OcbQ21HA"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-accent-red to-accent-pink hover:opacity-90 transition-all cursor-pointer text-sm"
-        >
-          Púlsame
-        </a>
-      </div>
+      {/* Schedule */}
+      <ScheduleSection />
     </div>
   );
 }
@@ -108,6 +99,7 @@ function GroupCard({ group, color, isAddingTo, onToggleAdd, unassignedGuests }: 
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['kitchen-groups'] });
       void queryClient.invalidateQueries({ queryKey: ['kitchen-balance'] });
+      void queryClient.invalidateQueries({ queryKey: ['kitchen-schedule'] });
     },
   });
 
@@ -118,6 +110,7 @@ function GroupCard({ group, color, isAddingTo, onToggleAdd, unassignedGuests }: 
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['kitchen-groups'] });
       void queryClient.invalidateQueries({ queryKey: ['kitchen-balance'] });
+      void queryClient.invalidateQueries({ queryKey: ['kitchen-schedule'] });
     },
   });
 
@@ -206,3 +199,74 @@ function GroupCard({ group, color, isAddingTo, onToggleAdd, unassignedGuests }: 
   );
 }
 
+const MEAL_LABELS: Record<string, string> = {
+  DESAYUNO: 'Desayuno',
+  COMIDA: 'Comida',
+  CENA: 'Cena',
+};
+
+const MEAL_ICONS: Record<string, string> = {
+  DESAYUNO: '\u2615',
+  COMIDA: '\ud83c\udf5d',
+  CENA: '\ud83c\udf19',
+};
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  return `${days[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+function ScheduleSection() {
+  const { data: schedule, isLoading, isError } = useKitchenSchedule();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-white">Horario de cocina</h3>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-24 bg-surface-100 rounded-2xl border border-glass-border animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (isError || !schedule) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-bold text-white">Horario de cocina</h3>
+      {schedule.map((day, i) => (
+        <motion.div
+          key={day.date}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.05 }}
+          className="bg-surface-100 rounded-2xl border border-glass-border p-3 space-y-2"
+        >
+          <p className="text-xs font-semibold text-slate-300">{formatDate(day.date)}</p>
+          <div className="space-y-1.5">
+            {day.meals.map(meal => {
+              const color = GROUP_COLORS[meal.groupNumber - 1];
+              return (
+                <div key={meal.meal} className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400 w-20">
+                    {MEAL_ICONS[meal.meal]} {MEAL_LABELS[meal.meal]}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-5 h-5 rounded-full ${color.badge} flex items-center justify-center text-[10px] font-bold text-white`}>
+                      {meal.groupNumber}
+                    </div>
+                    <span className={`text-xs font-medium ${color.text}`}>Grupo {meal.groupNumber}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
