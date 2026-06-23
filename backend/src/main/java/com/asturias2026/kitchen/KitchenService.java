@@ -98,6 +98,8 @@ public class KitchenService {
                 .collect(Collectors.toMap(Guest::getId, g -> g));
 
         String[] meals = {"DESAYUNO", "COMIDA", "CENA"};
+        // Desayuno es mucho más fácil que comida/cena
+        Map<String, Integer> mealWeight = Map.of("DESAYUNO", 1, "COMIDA", 3, "CENA", 3);
 
         // Collect all days
         List<LocalDate> days = new ArrayList<>();
@@ -107,9 +109,9 @@ public class KitchenService {
             day = day.plusDays(1);
         }
 
-        // Track total meals assigned per group
-        Map<Integer, Integer> totalMealsAssigned = new HashMap<>();
-        for (int g = 1; g <= 4; g++) totalMealsAssigned.put(g, 0);
+        // Track weighted workload per group
+        Map<Integer, Integer> totalWorkload = new HashMap<>();
+        for (int g = 1; g <= 4; g++) totalWorkload.put(g, 0);
 
         List<DayScheduleResponse> schedule = new ArrayList<>();
 
@@ -121,11 +123,12 @@ public class KitchenService {
             for (String meal : meals) {
                 int bestGroup = -1;
                 int bestScore = Integer.MIN_VALUE;
+                int weight = mealWeight.get(meal);
 
                 for (int g = 1; g <= 4; g++) {
                     int presenceCount = presence.getOrDefault(g, 0);
                     int score = presenceCount * 10
-                            - totalMealsAssigned.get(g);
+                            - totalWorkload.get(g);
                     if (assignedToday.contains(g)) {
                         score -= 1000;
                     }
@@ -137,7 +140,7 @@ public class KitchenService {
 
                 dayMeals.add(new MealAssignment(meal, bestGroup));
                 assignedToday.add(bestGroup);
-                totalMealsAssigned.merge(bestGroup, 1, Integer::sum);
+                totalWorkload.merge(bestGroup, weight, Integer::sum);
             }
 
             schedule.add(new DayScheduleResponse(d, dayMeals));
