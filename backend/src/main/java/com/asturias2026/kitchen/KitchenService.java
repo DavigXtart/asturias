@@ -97,11 +97,11 @@ public class KitchenService {
         Map<UUID, Guest> guestMap = guestRepo.findAll().stream()
                 .collect(Collectors.toMap(Guest::getId, g -> g));
 
-        String[] meals = {"DESAYUNO", "COMIDA", "CENA"};
-        // Desayuno es mucho más fácil que comida/cena
-        Map<String, Integer> mealWeight = Map.of("DESAYUNO", 1, "COMIDA", 3, "CENA", 3);
+        // Pesos: cocinar es más esfuerzo que recoger, desayuno solo se recoge
+        int COOK_WEIGHT = 3;
+        int CLEAN_WEIGHT = 2;
+        int BREAKFAST_CLEAN_WEIGHT = 1;
 
-        // Collect all days
         List<LocalDate> days = new ArrayList<>();
         LocalDate day = cfg.tripStart();
         while (day.isBefore(cfg.tripEnd())) {
@@ -109,7 +109,6 @@ public class KitchenService {
             day = day.plusDays(1);
         }
 
-        // Track weighted workload per group
         Map<Integer, Integer> totalWorkload = new HashMap<>();
         for (int g = 1; g <= 4; g++) totalWorkload.put(g, 0);
 
@@ -117,36 +116,63 @@ public class KitchenService {
 
         for (LocalDate d : days) {
             Map<Integer, Integer> presence = buildPresenceMap(d, allMembers, guestMap);
-            Set<Integer> assignedToday = new HashSet<>();
+            Set<Integer> busyToday = new HashSet<>();
             List<MealAssignment> dayMeals = new ArrayList<>();
 
-            for (String meal : meals) {
-                int bestGroup = -1;
-                int bestScore = Integer.MIN_VALUE;
-                int weight = mealWeight.get(meal);
+            // --- DESAYUNO: solo recoge, nadie cocina ---
+            int breakfastClean = pickBestGroup(presence, totalWorkload, busyToday);
+            dayMeals.add(new MealAssignment("DESAYUNO", null, breakfastClean));
+            busyToday.add(breakfastClean);
+            totalWorkload.merge(breakfastClean, BREAKFAST_CLEAN_WEIGHT, Integer::sum);
 
-                for (int g = 1; g <= 4; g++) {
-                    int presenceCount = presence.getOrDefault(g, 0);
-                    int score = presenceCount * 10
-                            - totalWorkload.get(g);
-                    if (assignedToday.contains(g)) {
-                        score -= 1000;
-                    }
-                    if (score > bestScore || (score == bestScore && g < bestGroup)) {
-                        bestScore = score;
-                        bestGroup = g;
-                    }
-                }
+            // --- COMIDA: uno cocina, otro recoge ---
+            int comidaCook = pickBestGroup(presence, totalWorkload, busyToday);
+            busyToday.add(comidaCook);
+            totalWorkload.merge(comidaCook, COOK_WEIGHT, Integer::sum);
 
-                dayMeals.add(new MealAssignment(meal, bestGroup));
-                assignedToday.add(bestGroup);
-                totalWorkload.merge(bestGroup, weight, Integer::sum);
-            }
+            int comidaClean = pickBestGroup(presence, totalWorkload, busyToday);
+            busyToday.add(comidaClean);
+            totalWorkload.merge(comidaClean, CLEAN_WEIGHT, Integer::sum);
+
+            dayMeals.add(new MealAssignment("COMIDA", comidaCook, comidaClean));
+
+            // --- CENA: uno cocina, otro recoge ---
+            // Reset busy para cena: permitir reusar grupos (solo hay 4 y ya usamos 3)
+            Set<Integer> busyForDinner = new HashSet<>();
+            // El que cocina la cena no debería ser el mismo que cocinó la comida
+            busyForDinner.add(comidaCook);
+
+            int cenaCook = pickBestGroup(presence, totalWorkload, busyForDinner);
+            busyForDinner.add(cenaCook);
+            totalWorkload.merge(cenaCook, COOK_WEIGHT, Integer::sum);
+
+            // El que recoge la cena no debería ser el que cocinó la cena
+            Set<Integer> busyForDinnerClean = new HashSet<>(busyForDinner);
+            int cenaClean = pickBestGroup(presence, totalWorkload, busyForDinnerClean);
+            totalWorkload.merge(cenaClean, CLEAN_WEIGHT, Integer::sum);
+
+            dayMeals.add(new MealAssignment("CENA", cenaCook, cenaClean));
 
             schedule.add(new DayScheduleResponse(d, dayMeals));
         }
 
         return schedule;
+    }
+
+    private int pickBestGroup(Map<Integer, Integer> presence, Map<Integer, Integer> workload, Set<Integer> excluded) {
+        int bestGroup = -1;
+        int bestScore = Integer.MIN_VALUE;
+        for (int g = 1; g <= 4; g++) {
+            int score = presence.getOrDefault(g, 0) * 10 - workload.get(g);
+            if (excluded.contains(g)) {
+                score -= 1000;
+            }
+            if (score > bestScore || (score == bestScore && g < bestGroup)) {
+                bestScore = score;
+                bestGroup = g;
+            }
+        }
+        return bestGroup;
     }
 
     private Map<Integer, Integer> buildPresenceMap(LocalDate date, List<KitchenMember> allMembers, Map<UUID, Guest> guestMap) {

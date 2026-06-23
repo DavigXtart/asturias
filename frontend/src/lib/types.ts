@@ -99,7 +99,8 @@ export interface Bed {
 
 export interface MealAssignment {
   meal: 'DESAYUNO' | 'COMIDA' | 'CENA';
-  groupNumber: number;
+  cookGroup: number | null;
+  cleanGroup: number;
 }
 
 export interface DaySchedule {

@@ -199,22 +199,22 @@ function GroupCard({ group, color, isAddingTo, onToggleAdd, unassignedGuests }: 
   );
 }
 
-const MEAL_LABELS: Record<string, string> = {
-  DESAYUNO: 'Desayuno',
-  COMIDA: 'Comida',
-  CENA: 'Cena',
-};
-
-const MEAL_ICONS: Record<string, string> = {
-  DESAYUNO: '\u2615',
-  COMIDA: '\ud83c\udf5d',
-  CENA: '\ud83c\udf19',
-};
-
 function formatDate(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00');
-  const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const days = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
   return `${days[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+function GroupBadge({ group }: { group: number }) {
+  const color = GROUP_COLORS[group - 1];
+  return (
+    <div className="flex items-center gap-1">
+      <div className={`w-5 h-5 rounded-full ${color.badge} flex items-center justify-center text-[10px] font-bold text-white`}>
+        {group}
+      </div>
+      <span className={`text-[11px] font-medium ${color.text}`}>G{group}</span>
+    </div>
+  );
 }
 
 function ScheduleSection() {
@@ -225,7 +225,7 @@ function ScheduleSection() {
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-white">Horario de cocina</h3>
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-24 bg-surface-100 rounded-2xl border border-glass-border animate-pulse" />
+          <div key={i} className="h-28 bg-surface-100 rounded-2xl border border-glass-border animate-pulse" />
         ))}
       </div>
     );
@@ -244,26 +244,31 @@ function ScheduleSection() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.05 }}
-          className="bg-surface-100 rounded-2xl border border-glass-border p-3 space-y-2"
+          className="bg-surface-100 rounded-2xl border border-glass-border p-3 space-y-2.5"
         >
-          <p className="text-xs font-semibold text-slate-300">{formatDate(day.date)}</p>
-          <div className="space-y-1.5">
-            {day.meals.map(meal => {
-              const color = GROUP_COLORS[meal.groupNumber - 1];
-              return (
-                <div key={meal.meal} className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400 w-20">
-                    {MEAL_ICONS[meal.meal]} {MEAL_LABELS[meal.meal]}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-5 h-5 rounded-full ${color.badge} flex items-center justify-center text-[10px] font-bold text-white`}>
-                      {meal.groupNumber}
+          <p className="text-xs font-bold text-white">{formatDate(day.date)}</p>
+          <div className="space-y-2">
+            {day.meals.map(meal => (
+              <div key={meal.meal} className="space-y-1">
+                <p className="text-[11px] font-semibold text-slate-300">
+                  {meal.meal === 'DESAYUNO' && '\u2615 Desayuno'}
+                  {meal.meal === 'COMIDA' && '\ud83c\udf5d Comida'}
+                  {meal.meal === 'CENA' && '\ud83c\udf19 Cena'}
+                </p>
+                <div className="flex items-center gap-3 pl-1">
+                  {meal.cookGroup != null && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-500">Cocina</span>
+                      <GroupBadge group={meal.cookGroup} />
                     </div>
-                    <span className={`text-xs font-medium ${color.text}`}>Grupo {meal.groupNumber}</span>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-slate-500">Recoge</span>
+                    <GroupBadge group={meal.cleanGroup} />
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </motion.div>
       ))}
