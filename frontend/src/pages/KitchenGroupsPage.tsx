@@ -143,7 +143,7 @@ function GroupCard({ group, color, isAddingTo, onToggleAdd, unassignedGuests }: 
             {isAdmin() && (
               <button
                 onClick={() => removeMutation.mutate(m.guestId)}
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-red text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-red text-white text-[8px] flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer"
                 aria-label={`Quitar ${m.guestName}`}
               >
                 x
