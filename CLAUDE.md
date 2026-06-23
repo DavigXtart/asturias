@@ -29,7 +29,7 @@ backend/src/main/java/com/asturias2026/
 ├── config_/      # Configuración del viaje (fechas, PIN admin)
 ├── costume/      # Sorteo disfraces: parejas, bolas, parejas forzadas
 ├── guest/        # Invitados y registro
-├── kitchen/      # Grupos de cocina
+├── kitchen/      # Grupos de cocina, horario cocina/recoge
 ├── room/         # Habitaciones, camas por día, asignaciones
 ├── common/       # ApiException, handler global
 └── config/       # CORS, WebConfig, AdminPinInterceptor
@@ -60,6 +60,19 @@ frontend/src/
 - Cada persona tiene un color de bola único (25 colores hex)
 - Temática fija: "Heroes y villanos"
 
+### Kitchen Schedule (Horario de cocina)
+- 4 grupos de cocina asignados manualmente (admin)
+- Horario generado automáticamente por `GET /api/kitchen/schedule`
+- Cada comida tiene dos roles: **cocina** y **recoge** (grupos distintos)
+  - **Desayuno**: solo "recoge" (nadie cocina el desayuno)
+  - **Comida**: un grupo cocina + otro recoge
+  - **Cena**: un grupo cocina + otro recoge
+- Algoritmo de scoring con pesos por esfuerzo: cocinar=3, recoger=2, recoger desayuno=1
+- Tiene en cuenta presencia por día (arrivalDate/departureDate de cada miembro)
+- Evita que el mismo grupo cocine comida y cena el mismo día
+- DTO: `MealAssignment(meal, cookGroup, cleanGroup)` — `cookGroup` es null en desayuno
+- Frontend: tarjetas por día con badges de color por grupo
+
 ### Room Assignments
 - Drag & drop para asignar invitados a habitaciones
 - Distribución por día con conteo de camas individuales, matrimonio e hinchables
@@ -87,6 +100,10 @@ DEL  /api/rooms/assign              # Desasignar
 GET  /api/costume/me                # Mi pareja de disfraz
 GET  /api/costume/balls             # Vista de bolas (animación)
 GET  /api/kitchen/groups            # Grupos de cocina
+GET  /api/kitchen/schedule          # Horario cocina/recoge por día
+GET  /api/kitchen/balance           # Balance de miembros presentes por grupo/día
+PUT  /api/kitchen/groups/{n}/members  # Asignar miembro a grupo
+DEL  /api/kitchen/groups/{n}/members/{id} # Quitar miembro de grupo
 ```
 
 ### Admin (requieren X-Admin-Pin)
